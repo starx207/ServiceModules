@@ -1,0 +1,20 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+
+    <PackageId>ServiceModules.AspNetCore</PackageId>
+    <PackageVersion>1.0.0-test-3</PackageVersion>
+    <Description>AspNetCore extensions</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ServiceModules.Core\ServiceModules.Core.csproj" />
+  </ItemGroup>
+
+</Project>

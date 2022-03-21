@@ -1,0 +1,19 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+
+    <PackageId>ServiceModules</PackageId>
+    <PackageVersion>1.0.0-test-3</PackageVersion>
+    <Description>Test nuget pack</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="6.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="ServiceModules.AspNetCore"/>
+  </ItemGroup>
+  
+</Project>
