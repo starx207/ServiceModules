@@ -14,11 +14,25 @@ public class ServiceCollectionModuleConfiguration {
     internal ServiceCollectionModuleConfiguration(ModuleOptions options) => _options = options;
 
     /// <summary>
+    /// Set the key used to load the module configurations from <see cref="IConfiguration"/>
+    /// </summary>
+    /// <param name="sectionKey">The configuration key</param>
+    /// <returns></returns>
+    /// <exception cref="ArgumentException"></exception>
+    public ServiceCollectionModuleConfiguration UsingModuleConfigurationSection(string sectionKey) {
+        if (string.IsNullOrWhiteSpace(sectionKey)) {
+            throw new ArgumentException($"'{nameof(sectionKey)}' cannot be null or whitespace.", nameof(sectionKey));
+        }
+        _options.ModuleConfigSectionKey = sectionKey;
+        return this;
+    }
+
+    /// <summary>
     /// Only run public <see cref="IRegistryModule"/> implementations
     /// </summary>
     /// <returns></returns>
     public ServiceCollectionModuleConfiguration PublicOnly() {
-        _options.OnlyPublicModules = true;
+        _options.PublicOnly = true;
         return this;
     }
 

@@ -8,6 +8,12 @@ public class WebApplicationModuleConfiguration {
 
     public WebApplicationModuleConfiguration(ServiceCollectionModuleConfiguration configBuilder) => _configBuilder = configBuilder;
 
+    /// <inheritdoc cref="ServiceCollectionModuleConfiguration.UsingModuleConfigurationSection(string)"/>
+    public WebApplicationModuleConfiguration UsingModuleConfigurationSection(string sectionKey) {
+        _configBuilder.UsingModuleConfigurationSection(sectionKey);
+        return this;
+    }
+
     /// <inheritdoc cref="ServiceCollectionModuleConfiguration.PublicOnly"/>
     public WebApplicationModuleConfiguration PublicOnly() {
         _configBuilder.PublicOnly();

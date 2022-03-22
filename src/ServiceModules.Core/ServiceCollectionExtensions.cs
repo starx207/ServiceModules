@@ -4,16 +4,17 @@ using Microsoft.Extensions.Hosting;
 using ServiceModules.Internal;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Reflection;
 
-namespace ServiceModules;
+namespace ServiceModules; 
 public static class ServiceCollectionExtensions {
     public static IServiceCollection ApplyModules(this IServiceCollection services, params Assembly[] assemblies)
-        => services.ApplyModules(config => { 
+        => services.ApplyModules(config => {
             if (assemblies.Any()) {
                 config.FromAssemblies(assemblies);
-            } 
+            }
         });
 
     /// <summary>
@@ -32,32 +33,108 @@ public static class ServiceCollectionExtensions {
         moduleConfiguration(runnerConfig);
         var options = runnerConfig.GetOptions();
 
+        var moduleConfig = options.Configuration?.GetModuleConfig(options.ModuleConfigSectionKey);
+
         var modules = InstantiateModules(options);
-        IHostEnvironment? environment = null;
-        if (options.Environment is { } env) {
-            if (!typeof(IHostEnvironment).IsAssignableFrom(env.GetType())) {
+        if (options.Environment is { } environment) {
+            if (!typeof(IHostEnvironment).IsAssignableFrom(environment.GetType())) {
                 throw new InvalidOperationException($"{nameof(options.Environment)} must implement {nameof(IHostEnvironment)}");
             }
-            environment = (IHostEnvironment)env;
+            var envName = ((IHostEnvironment)environment).EnvironmentName;
+
+            modules = modules.Where(module => module.TargetEnvironments.Count == 0
+                || module.TargetEnvironments.Any(target
+                    => target.Equals(envName, StringComparison.OrdinalIgnoreCase)));
         }
 
         foreach (var module in modules) {
-            if (module.TargetEnvironments.Count == 0
-                || environment is null
-                || module.TargetEnvironments.Any(target
-                    => target.Equals(environment.EnvironmentName, StringComparison.OrdinalIgnoreCase))
-            ) {
-                module.ConfigureServices(services);
+            if (moduleConfig.TryGetConfigForModule(module, out var config)) {
+                ApplyModuleConfiguration(module, config, options);
             }
+
+            module.ConfigureServices(services);
         }
 
         return services;
     }
 
+    private static bool TryGetConfigForModule(this Dictionary<string, IReadOnlyDictionary<string, string>>? moduleConfig, IRegistryModule module, out IReadOnlyDictionary<string, string> config) {
+        config = new Dictionary<string, string>();
+        if (moduleConfig is null) {
+            return false;
+        }
+
+        var moduleType = module.GetType();
+
+        // Namespace + type-name first
+        if (moduleConfig.TryGetValue(moduleType.FullName, out config)) {
+            return true;
+        }
+
+        // type-name without namespace
+        if (moduleConfig.TryGetValue(moduleType.Name, out config)) {
+            return true;
+        }
+
+        // Wildcard matching
+        var wildcard = '*';
+        var wildcardMatch = moduleConfig.Where(entry => entry.Key.Contains(wildcard) && entry.Key.Length > 1)
+            .OrderByDescending(entry => entry.Key.Replace(wildcard.ToString(), string.Empty).Length) // Get the most specific wildcard match
+                .ThenBy(entry => entry.Key.Count(c => c == wildcard)) // Favor fewer wildcards when the lengths (without wildcards) match
+            .FirstOrDefault(entry => moduleType.FullName.MatchWildcard(entry.Key, wildcard, comparison: StringComparison.OrdinalIgnoreCase))
+            .Value;
+
+        if (wildcardMatch is not null) {
+            config = wildcardMatch;
+            return true;
+        }
+
+        return false;
+    }
+
+    private static void ApplyModuleConfiguration(IRegistryModule module, IReadOnlyDictionary<string, string> config, ModuleOptions options) {
+        var modType = module.GetType();
+        var bindingFlags = BindingFlags.Instance | BindingFlags.Public;
+        if (!options.PublicOnly) {
+            bindingFlags |= BindingFlags.NonPublic;
+        }
+
+        var propertiesToSet = modType.GetProperties(bindingFlags)
+            .Where(prop => config.ContainsKey(prop.Name));
+
+        var extraConfigs = config.Keys.Except(propertiesToSet.Select(prop => prop.Name), StringComparer.OrdinalIgnoreCase);
+        if (extraConfigs.Any()) {
+            var msg = "The following properties do not exist";
+            if (options.PublicOnly) {
+                msg += " or are not public";
+            }
+            msg += $" on module {modType.Name}: {string.Join(", ", extraConfigs)}";
+            throw new InvalidOperationException(msg);
+        }
+
+        var unsettableProps = propertiesToSet.Where(prop 
+            => (options.PublicOnly ? prop.GetSetMethod() : prop.SetMethod) == null).Select(prop => prop.Name);
+        if (unsettableProps.Any()) {
+            var msg = "The following properties have no";
+            if (options.PublicOnly) {
+                msg += " public";
+            }
+            msg += $" setter and cannot be configured on module {modType.Name}: {string.Join(", ", unsettableProps)}";
+            throw new InvalidOperationException(msg);
+        }
+
+        foreach (var prop in propertiesToSet) {
+            var converter = TypeDescriptor.GetConverter(prop.PropertyType);
+            // TODO: This will throw a NotSupportedException if the conversion can't be completed.
+            //       Do I want that? Should I handle the exception? Should I throw my own exception?
+            prop.SetValue(module, converter.ConvertFrom(config[prop.Name]));
+        }
+    }
+
     private static IEnumerable<IRegistryModule> InstantiateModules(ModuleOptions options) {
         var modules = options.Modules.AsEnumerable();
         var typesToCreate = options.ModuleTypes.Except(modules.Select(m => m.GetType()));
-        if (options.OnlyPublicModules) {
+        if (options.PublicOnly) {
             typesToCreate = typesToCreate.Where(t => t.IsPublic);
         }
 
@@ -108,5 +185,39 @@ public static class ServiceCollectionExtensions {
         }
 
         return (IRegistryModule)ctor.Invoke(paramInstances);
+    }
+
+    private static bool MatchWildcard(this string value, string check, char wildcard, StringComparison comparison = StringComparison.Ordinal) {
+        var trimmedCheck = check.Trim(wildcard);
+        return (check.StartsWith(wildcard), check.EndsWith(wildcard), trimmedCheck.Contains(wildcard)) switch {
+            (var wildcardStart, var wildcardEnd, true) => MatchInnerWildcard(value, trimmedCheck.Split(wildcard), !wildcardStart, !wildcardEnd, comparison),
+            (true, true, _) => value.Contains(trimmedCheck, comparison),
+            (false, true, _) => value.StartsWith(trimmedCheck, comparison),
+            (true, false, _) => value.EndsWith(trimmedCheck, comparison),
+            (false, false, _) => value.Equals(check, comparison)
+        };
+    }
+
+    private static bool MatchInnerWildcard(string value, string[] checkSegments, bool shouldMatchStart, bool shouldMatchEnd, StringComparison comparison) {
+        if (checkSegments.Length == 0) {
+            return false;
+        }
+
+        if (shouldMatchStart && !value.StartsWith(checkSegments.First(), comparison)) {
+            return false;
+        }
+        if (shouldMatchEnd && !value.EndsWith(checkSegments.Last(), comparison)) {
+            return false;
+        }
+
+        var valueIndex = 0;
+        foreach (var segment in checkSegments) {
+            valueIndex = value.IndexOf(segment, valueIndex, comparison);
+            if (valueIndex < 0) {
+                break;            
+            }
+            valueIndex += segment.Length;
+        }
+        return valueIndex >= 0;
     }
 }
