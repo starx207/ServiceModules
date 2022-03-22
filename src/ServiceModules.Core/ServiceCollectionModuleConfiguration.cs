@@ -1,9 +1,9 @@
-﻿using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Hosting;
-using ServiceModules.Internal;
-using System;
+﻿using System;
 using System.Linq;
 using System.Reflection;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
+using ServiceModules.Internal;
 
 namespace ServiceModules;
 public class ServiceCollectionModuleConfiguration {
@@ -42,7 +42,7 @@ public class ServiceCollectionModuleConfiguration {
     /// <param name="assemblyMarkers">Types from the assemblies to scan</param>
     /// <returns></returns>
     /// <exception cref="ArgumentNullException"></exception>
-    public ServiceCollectionModuleConfiguration FromAssemblies(params Type[] assemblyMarkers) 
+    public ServiceCollectionModuleConfiguration FromAssemblies(params Type[] assemblyMarkers)
         => FromAssemblies(assemblyMarkers.Select(marker => marker.Assembly).ToArray());
 
     /// <summary>
@@ -123,7 +123,7 @@ public class ServiceCollectionModuleConfiguration {
     public ServiceCollectionModuleConfiguration UsingModules(params IRegistryModule[] modules) {
         if (modules is null) {
             throw new ArgumentNullException(nameof(modules));
-}
+        }
 
         foreach (var module in modules) {
             if (!_options.Modules.Contains(module)) {
@@ -193,7 +193,15 @@ public class ServiceCollectionModuleConfiguration {
         if (!_options.Modules.Any() && !_options.ModuleTypes.Any()) {
             AttemptToLoadFromEntryAssembly();
         }
+        RemoveModuleTypesWithConcreteImplementations();
         return _options;
+    }
+
+    private void RemoveModuleTypesWithConcreteImplementations() {
+        if (_options.Modules.Any() && _options.ModuleTypes.Any()) {
+            var concreteTypes = _options.Modules.Select(m => m.GetType());
+            _options.ModuleTypes.RemoveAll(mt => concreteTypes.Contains(mt));
+        }
     }
 
     private void AddAllowedArgType(Type type) {
