@@ -16,5 +16,9 @@
   <ItemGroup>
     <InternalsVisibleTo Include="ServiceModules.AspNetCore" />
   </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ServiceModules.Abstractions\ServiceModules.Abstractions.csproj" />
+  </ItemGroup>
   
 </Project>
