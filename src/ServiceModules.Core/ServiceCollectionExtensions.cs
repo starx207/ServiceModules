@@ -37,14 +37,11 @@ public static class ServiceCollectionExtensions {
     /// or when unable to instantiate an <see cref="IRegistryModule"/> implementation.
     /// </exception>
     public static IServiceCollection ApplyModules(this IServiceCollection services, Action<ServiceCollectionModuleConfiguration> moduleConfiguration) {
-        InternalServiceProvider.EnsureInternalServices(services);
-
         var runnerConfig = new ServiceCollectionModuleConfiguration();
         moduleConfiguration(runnerConfig);
         var options = runnerConfig.GetOptions();
 
-        InternalServiceProvider.ResolveModuleRunner(services).ApplyRegistries(services, options);
-        InternalServiceProvider.CleanupInternalServices(services);
+        InternalServiceProvider.GetModuleRunner(services).ApplyRegistries(services, options);
 
         return services;
     }

@@ -7,6 +7,9 @@ using ServiceModules.Internal;
 
 namespace ServiceModules;
 public class ServiceCollectionModuleConfiguration {
+    private static readonly Type _hostEnvironmentType = typeof(IHostEnvironment);
+    private static readonly Type _configurationType = typeof(IConfiguration);
+
     private readonly ModuleOptions _options;
     private bool _entryAssemblyAttempted = false;
 
@@ -52,10 +55,7 @@ public class ServiceCollectionModuleConfiguration {
     /// <returns></returns>
     /// <exception cref="ArgumentNullException"></exception>
     public ServiceCollectionModuleConfiguration FromAssemblies(params Assembly[] assemblies) {
-        if (assemblies is null) {
-            throw new ArgumentNullException(nameof(assemblies));
-        }
-        if (assemblies.Length == 0) {
+        if (assemblies is not { Length: > 0 }) {
             throw new ArgumentException("No assemblies given to scan", nameof(assemblies));
         }
 
@@ -85,9 +85,12 @@ public class ServiceCollectionModuleConfiguration {
         }
 
         foreach (var provider in providers) {
-            if (!_options.Providers.Any(p => p.GetType() == provider.GetType())) {
-                _options.Providers.Add(provider);
-                _options.AllowedModuleArgTypes.Add(provider.GetType());
+            if (_hostEnvironmentType.IsAssignableFrom(provider.GetType())) {
+                WithEnvironment(provider);
+            } else if (_configurationType.IsAssignableFrom(provider.GetType())) {
+                WithConfiguration((IConfiguration)provider);
+            } else {
+                AddProvider(provider, false);
             }
         }
 
@@ -103,6 +106,10 @@ public class ServiceCollectionModuleConfiguration {
     public ServiceCollectionModuleConfiguration UsingModules(params Type[] moduleTypes) {
         if (moduleTypes is null) {
             throw new ArgumentNullException(nameof(moduleTypes));
+        }
+        var invalidModuleTypes = moduleTypes.Where(t => !typeof(IRegistryModule).IsAssignableFrom(t)).Select(t => t.Name);
+        if (invalidModuleTypes.Any()) {
+            throw new InvalidOperationException($"The following module types do not implement {nameof(IRegistryModule)}: {string.Join(", ", invalidModuleTypes)}");
         }
 
         foreach (var modType in moduleTypes) {
@@ -147,20 +154,12 @@ public class ServiceCollectionModuleConfiguration {
             throw new ArgumentNullException(nameof(environment));
         }
 
-        var baseEnvType = typeof(IHostEnvironment);
-        if (!baseEnvType.IsAssignableFrom(environment.GetType())) {
+        if (!_hostEnvironmentType.IsAssignableFrom(environment.GetType())) {
             throw new InvalidOperationException($"Environment object must implement {nameof(IHostEnvironment)}");
         }
 
-        AddAllowedArgType(baseEnvType);
-        AddAllowedArgType(environment.GetType());
-
-        // TODO: unify this with the AddProviders method. Don't want to get duplicates
-        if (_options.Environment is not null) {
-            _options.Providers.Remove(_options.Environment);
-        }
+        AddProvider(environment, true, _hostEnvironmentType);
         _options.Environment = environment;
-        _options.Providers.Add(_options.Environment);
 
         return this;
     }
@@ -177,14 +176,8 @@ public class ServiceCollectionModuleConfiguration {
             throw new ArgumentNullException(nameof(configuration));
         }
 
-        AddAllowedArgType(typeof(IConfiguration));
-
-        // TODO: unify this with the AddProviders method. Don't want to get duplicates
-        if (_options.Configuration is not null) {
-            _options.Providers.Remove(_options.Configuration);
-        }
+        AddProvider(configuration, true, _configurationType);
         _options.Configuration = configuration;
-        _options.Providers.Add(_options.Configuration);
 
         return this;
     }
@@ -217,6 +210,27 @@ public class ServiceCollectionModuleConfiguration {
         _entryAssemblyAttempted = true;
         if (Assembly.GetEntryAssembly() is { } entry) {
             FromAssemblies(entry);
+        }
+    }
+
+    private void AddProvider(object provider, bool replaceExisting, params Type[] additionalArgsTypes) {
+        var existingProvider = _options.Providers.FirstOrDefault(p
+            => p.GetType() == provider.GetType()
+            || additionalArgsTypes.Contains(p.GetType())
+            || additionalArgsTypes.Any(arg => arg.IsAssignableFrom(p.GetType())));
+        var providerExists = existingProvider is not null;
+
+        if (providerExists && replaceExisting) {
+            _options.Providers.Remove(existingProvider!);
+            _options.AllowedModuleArgTypes.Remove(existingProvider!.GetType());
+            providerExists = false;
+        }
+
+        if (!providerExists) {
+            _options.Providers.Add(provider);
+            _options.AllowedModuleArgTypes.Add(provider.GetType());
+            var newArgTypes = additionalArgsTypes.Except(_options.AllowedModuleArgTypes).ToArray();
+            _options.AllowedModuleArgTypes.AddRange(newArgTypes);
         }
     }
 }

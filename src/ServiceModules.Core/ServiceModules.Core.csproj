@@ -15,6 +15,9 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="ServiceModules.AspNetCore" />
+    <InternalsVisibleTo Include="ServiceModules.Core.Tests" />
+    <InternalsVisibleTo Include="ServiceModules.Core.Internal.Tests" />
+    <InternalsVisibleTo Include="DynamicProxyGenAssembly2" />
   </ItemGroup>
 
   <ItemGroup>

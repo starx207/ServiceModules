@@ -1,0 +1,12 @@
+# To learn more about .editorconfig see https://aka.ms/editorconfigdocs
+############################### 
+# .NET Coding Conventions     # 
+############################### 
+[*.{cs,vb}] 
+############################### 
+# Naming Conventions          # 
+############################### 
+# Style Definitions 
+dotnet_naming_style.test_async_pascal_case_style.capitalization  = pascal_case
+# Use PascalCase with "Async" for async methods
+dotnet_naming_rule.async_method_camel_case.style = test_async_pascal_case_style

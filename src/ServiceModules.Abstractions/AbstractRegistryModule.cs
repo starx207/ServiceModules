@@ -1,7 +1,11 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-using System;
+﻿using System;
 using System.Collections.Generic;
+using Microsoft.Extensions.DependencyInjection;
 
+// TODO: I want to add the ability to inject ILogger<T> into these modules.
+//       Since logging typically isn't available at the time the services are being registered,
+//       I will need to create some sort of deferred logger that will add messages to a queue
+//       -- then that queue can be flushed to the actual logger once it is available
 namespace ServiceModules;
 
 /// <inheritdoc/>
