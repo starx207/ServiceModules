@@ -12,6 +12,7 @@ public class ServiceCollectionModuleConfiguration {
 
     private readonly ModuleOptions _options;
     private bool _entryAssemblyAttempted = false;
+    private Assembly? _defaultAssembly;
 
     internal ServiceCollectionModuleConfiguration() : this(new ModuleOptions()) { }
     internal ServiceCollectionModuleConfiguration(ModuleOptions options) => _options = options;
@@ -182,9 +183,14 @@ public class ServiceCollectionModuleConfiguration {
         return this;
     }
 
+    internal ServiceCollectionModuleConfiguration WithDefaultAssembly(Assembly assembly) {
+        _defaultAssembly = assembly;
+        return this;
+    }
+
     internal ModuleOptions GetOptions() {
         if (!_options.Modules.Any() && !_options.ModuleTypes.Any()) {
-            AttemptToLoadFromEntryAssembly();
+            AttemptToLoadFromDefaultAssembly();
         }
         RemoveModuleTypesWithConcreteImplementations();
         return _options;
@@ -203,13 +209,13 @@ public class ServiceCollectionModuleConfiguration {
         }
     }
 
-    private void AttemptToLoadFromEntryAssembly() {
+    private void AttemptToLoadFromDefaultAssembly() {
         if (_entryAssemblyAttempted) {
             return;
         }
         _entryAssemblyAttempted = true;
-        if (Assembly.GetEntryAssembly() is { } entry) {
-            FromAssemblies(entry);
+        if (_defaultAssembly is { } assm) {
+            FromAssemblies(assm);
         }
     }
 

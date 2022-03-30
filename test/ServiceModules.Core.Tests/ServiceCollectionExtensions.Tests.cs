@@ -21,6 +21,7 @@ public class ServiceCollectionExtensions_Should {
         var expectedOptions = CreateOptions();
         expectedOptions.ModuleConfigSectionKey = "registry_modules";
         expectedOptions.PublicOnly = false;
+        expectedOptions.ModuleTypes.Add(typeof(TestModule1));
 
         // Act
         services.ApplyModules();
@@ -256,16 +257,6 @@ public class ServiceCollectionExtensions_Should {
             mock.OptionsApplied?.Providers.Should().Contain(expectedCfg)
                 .And.NotContain(firstCfg);
         }
-    }
-
-    [Fact(Skip = "When testing, the entry assembly is 'testhost' which doesn't have any modules defined. Not sure how to test this (if it is even possible)")]
-    public void GetModulesFromEntryAssembly_IfNoneOtherwiseConfigured() {
-        // Arrange
-
-        // Act
-
-        // Assert
-        //Assert.True(false, "Not Implemented");
     }
 
     [Fact]
