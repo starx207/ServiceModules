@@ -17,4 +17,9 @@
     <ProjectReference Include="..\ServiceModules.Core\ServiceModules.Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="ServiceModules.AspNetCore.Tests" />
+    <InternalsVisibleTo Include="DynamicProxyGenAssembly2" />
+  </ItemGroup>
+  
 </Project>
