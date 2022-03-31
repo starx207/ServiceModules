@@ -39,10 +39,8 @@ namespace ServiceModules.Internal.Tests {
             var expectedModule = CreateTestModule1();
 
             var config = CreateConfig();
-            AddConfigKey(config, "TestModule3",
-                (nameof(Namespace1.TestModule3.PublicString), "a-new-value"));
-            AddConfigKey(config, "*.Namespace2.TestModule",
-                (nameof(Namespace2.TestModule.PublicString), "a-new-value"));
+            config.AddPropertyTo("TestModule3", nameof(Namespace1.TestModule3.PublicString), "a-new-value");
+            config.AddPropertyTo("*.Namespace2.TestModule", nameof(Namespace2.TestModule.PublicString), "a-new-value");
 
             mock.SetupLoadFrom(returnVal: config);
 
@@ -66,10 +64,9 @@ namespace ServiceModules.Internal.Tests {
             module.PublicString = $"not-{newString}";
 
             var config = CreateConfig();
-            AddConfigKey(config, nameof(Namespace1.TestModule),
-                (nameof(module.PublicBool), newBool.ToString().ToLower()),
-                (nameof(module.PublicInt), newInt.ToString()),
-                (nameof(module.PublicString), newString));
+            config.AddPropertyTo(nameof(Namespace1.TestModule), nameof(module.PublicBool), newBool.ToString().ToLower());
+            config.AddPropertyTo(nameof(Namespace1.TestModule), nameof(module.PublicInt), newInt.ToString());
+            config.AddPropertyTo(nameof(Namespace1.TestModule), nameof(module.PublicString), newString);
 
             var mock = new Dependencies();
             var service = CreateService(mock);
@@ -98,7 +95,7 @@ namespace ServiceModules.Internal.Tests {
 
             var config = CreateConfig();
             for (var i = 0; i < keys.Length; i++) {
-                AddConfigKey(config, keys[i], (nameof(module.PublicString), i == correctIndex ? correctVal : wrongVal));
+                config.AddPropertyTo(keys[i], nameof(module.PublicString), i == correctIndex ? correctVal : wrongVal);
             }
 
             var mock = new Dependencies();
@@ -119,7 +116,7 @@ namespace ServiceModules.Internal.Tests {
             // Arrange
             var module = CreateTestModule3();
             var config = CreateConfig();
-            AddConfigKey(config, module.GetType().Name, ($"NonExistant_{nameof(module.PublicString)}", "oops"));
+            config.AddPropertyTo(module.GetType().Name, $"NonExistant_{nameof(module.PublicString)}", "oops");
 
             var mock = new Dependencies();
             var service = CreateService(mock);
@@ -141,9 +138,8 @@ namespace ServiceModules.Internal.Tests {
             // Arrange
             var module = CreateTestModule1();
             var config = CreateConfig();
-            AddConfigKey(config, module.GetType().Name,
-                ("InternalString", "internal-oops"),
-                ("PrivateString", "private-oops"));
+            config.AddPropertyTo(module.GetType().Name, "InternalString", "internal-oops");
+            config.AddPropertyTo(module.GetType().Name, "PrivateString", "private-oops");
 
             var options = CreateOptions(publicOnly: true);
             var mock = new Dependencies();
@@ -166,9 +162,8 @@ namespace ServiceModules.Internal.Tests {
             // Arrange
             var module = CreateTestModule1();
             var config = CreateConfig();
-            AddConfigKey(config, module.GetType().Name,
-                (nameof(module.StringWithoutSetter), "oops"),
-                (nameof(module.StringWithLambdaGetter), "oops"));
+            config.AddPropertyTo(module.GetType().Name, nameof(module.StringWithoutSetter), "oops");
+            config.AddPropertyTo(module.GetType().Name, nameof(module.StringWithLambdaGetter), "oops");
 
             var mock = new Dependencies();
             var service = CreateService(mock);
@@ -191,9 +186,8 @@ namespace ServiceModules.Internal.Tests {
             // Arrange
             var module = CreateTestModule1();
             var config = CreateConfig();
-            AddConfigKey(config, module.GetType().Name,
-                (nameof(module.StringWithInternalSetter), "oops"),
-                (nameof(module.StringWithPrivateSetter), "oops"));
+            config.AddPropertyTo(module.GetType().Name, nameof(module.StringWithInternalSetter), "oops");
+            config.AddPropertyTo(module.GetType().Name, nameof(module.StringWithPrivateSetter), "oops");
 
             var options = CreateOptions(publicOnly: true);
             var mock = new Dependencies();
@@ -264,15 +258,8 @@ namespace ServiceModules.Internal.Tests {
         private static Namespace2.TestModule CreateTestModule2() => new();
         private static Namespace1.TestModule3 CreateTestModule3() => new();
 
-        private static Dictionary<string, IReadOnlyDictionary<string, string>> CreateConfig() => new();
+        private static ModuleConfiguration CreateConfig() => new();
 
-        private static void AddConfigKey(Dictionary<string, IReadOnlyDictionary<string, string>> source, string typeName, params (string propName, string propVal)[] props) {
-            var entryDict = new Dictionary<string, string>();
-            foreach (var (propName, propVal) in props) {
-                entryDict[propName] = propVal;
-            }
-            source[typeName] = entryDict;
-        }
         #endregion
 
         #region Test Classes
@@ -285,9 +272,9 @@ namespace ServiceModules.Internal.Tests {
                 SetupLoadFrom();
             }
 
-            public void SetupLoadFrom(Action<ModuleOptions>? callback = null, Dictionary<string, IReadOnlyDictionary<string, string>>? returnVal = null) {
+            public void SetupLoadFrom(Action<ModuleOptions>? callback = null, ModuleConfiguration? returnVal = null) {
                 var setup = Loader.Setup(m => m.LoadFrom(It.IsAny<ModuleOptions>()));
-                IReturnsThrows<IModuleConfigLoader, Dictionary<string, IReadOnlyDictionary<string, string>>?> returnsThrows = setup;
+                IReturnsThrows<IModuleConfigLoader, ModuleConfiguration?> returnsThrows = setup;
                 if (callback is not null) {
                     returnsThrows = setup.Callback(callback);
                 }

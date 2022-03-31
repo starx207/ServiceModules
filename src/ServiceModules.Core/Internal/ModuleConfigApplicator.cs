@@ -6,7 +6,7 @@ using System.Reflection;
 
 namespace ServiceModules.Internal;
 internal class ModuleConfigApplicator : IModuleConfigApplicator {
-    private Dictionary<string, IReadOnlyDictionary<string, string>>? _moduleConfig;
+    private ModuleConfiguration? _moduleConfig;
     private bool _publicOnly;
     private readonly IModuleConfigLoader _configLoader;
 
