@@ -1,12 +1,6 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using Microsoft.Extensions.DependencyInjection;
 
-// TODO: I want to add the ability to configure the modules further via IConfiguration.
-//       Use reflection to set public properties of the modules.
-//         -> Need to be able to specify the module name (and, optionally, namespace)
-//       What about global configuration settings?
-//         -> Maybe being able to supress/turn-on errors? When would this be useful?
-//         -> If no modules are found to apply, should we throw an error?
 namespace ServiceModules;
 
 /// <summary>
