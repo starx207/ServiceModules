@@ -134,6 +134,26 @@ namespace ServiceModules.Internal.Tests {
         }
 
         [Fact]
+        public void NotThrowAnException_WhenTryingToSetAPropertyThatDoesNotExist_WithErrorSuppressionOn() {
+            // Arrange
+            var module = CreateTestModule3();
+            var config = CreateConfig();
+            config.AddPropertyTo(module.GetType().Name, $"NonExistant_{nameof(module.PublicString)}", CreatePropConfig(suppressErrs: true));
+
+            var mock = new Dependencies();
+            var service = CreateService(mock);
+
+            mock.SetupLoadFrom(returnVal: config);
+
+            // Act
+            service.InitializeFrom(CreateOptions());
+            var action = () => service.ApplyModuleConfiguration(module);
+
+            // Assert
+            action.Should().NotThrow();
+        }
+
+        [Fact]
         public void ThrowAnException_WhenTryingToSetANonPublicProperty_WhenOptionsUsePublicOnly() {
             // Arrange
             var module = CreateTestModule1();
@@ -158,6 +178,28 @@ namespace ServiceModules.Internal.Tests {
         }
 
         [Fact]
+        public void NotThrowAnException_WhenTryingToSetANonPublicProperty_WhenOptionsUsePublicOnly_ButErrorSuppressionOn() {
+            // Arrange
+            var module = CreateTestModule1();
+            var config = CreateConfig();
+            config.AddPropertyTo(module.GetType().Name, "InternalString", CreatePropConfig(suppressErrs: true));
+            config.AddPropertyTo(module.GetType().Name, "PrivateString", CreatePropConfig(suppressErrs: true));
+
+            var options = CreateOptions(publicOnly: true);
+            var mock = new Dependencies();
+            var service = CreateService(mock);
+
+            mock.SetupLoadFrom(returnVal: config);
+
+            // Act
+            service.InitializeFrom(options);
+            var action = () => service.ApplyModuleConfiguration(module);
+
+            // Assert
+            action.Should().NotThrow();
+        }
+
+        [Fact]
         public void ThrowAnException_WhenTryingToSetAProperty_WithNoSetter() {
             // Arrange
             var module = CreateTestModule1();
@@ -179,6 +221,27 @@ namespace ServiceModules.Internal.Tests {
                 .Which.Message.Should()
                 .Be($"Failed to configure {module.GetType().Name} because no setter found for the following properties: " +
                 $"{nameof(module.StringWithoutSetter)}, {nameof(module.StringWithLambdaGetter)}");
+        }
+
+        [Fact]
+        public void NotThrowAnException_WhenTryingToSetAProperty_WithNoSetter_ButErrorSuppressionOn() {
+            // Arrange
+            var module = CreateTestModule1();
+            var config = CreateConfig();
+            config.AddPropertyTo(module.GetType().Name, nameof(module.StringWithoutSetter), CreatePropConfig(suppressErrs: true));
+            config.AddPropertyTo(module.GetType().Name, nameof(module.StringWithLambdaGetter), CreatePropConfig(suppressErrs: true));
+
+            var mock = new Dependencies();
+            var service = CreateService(mock);
+
+            mock.SetupLoadFrom(returnVal: config);
+
+            // Act
+            service.InitializeFrom(CreateOptions());
+            var action = () => service.ApplyModuleConfiguration(module);
+
+            // Assert
+            action.Should().NotThrow();
         }
 
         [Fact]
@@ -207,6 +270,28 @@ namespace ServiceModules.Internal.Tests {
         }
 
         [Fact]
+        public void NotThrowAnException_WhenTryingToSetAProperty_WithNonPublicSetter_WhenOptionsUsePublicOnly_ButErrorSuppressionOn() {
+            // Arrange
+            var module = CreateTestModule1();
+            var config = CreateConfig();
+            config.AddPropertyTo(module.GetType().Name, nameof(module.StringWithInternalSetter), CreatePropConfig(suppressErrs: true));
+            config.AddPropertyTo(module.GetType().Name, nameof(module.StringWithPrivateSetter), CreatePropConfig(suppressErrs: true));
+
+            var options = CreateOptions(publicOnly: true);
+            var mock = new Dependencies();
+            var service = CreateService(mock);
+
+            mock.SetupLoadFrom(returnVal: config);
+
+            // Act
+            service.InitializeFrom(options);
+            var action = () => service.ApplyModuleConfiguration(module);
+
+            // Assert
+            action.Should().NotThrow();
+        }
+
+        [Fact]
         public void PassGivenOptions_ToModuleConfigLoader_ForRetreivingConfigurations() {
             // Arrange
             var expectedOptions = CreateOptions();
@@ -221,6 +306,46 @@ namespace ServiceModules.Internal.Tests {
 
             // Assert
             actualOptions.Should().BeSameAs(expectedOptions);
+        }
+
+        [Fact]
+        public void ThrowAnException_WhenTryingToSetAPropertyWithAnInvalidValue() {
+            // Arrange
+            var module = CreateTestModule1();
+            var config = CreateConfig();
+            config.AddPropertyTo(module.GetType().Name, nameof(module.PublicInt), "I'm not an integer!");
+
+            var mock = new Dependencies();
+            var service = CreateService(mock);
+
+            mock.SetupLoadFrom(returnVal: config);
+
+            // Act
+            service.InitializeFrom(CreateOptions());
+            var action = () => service.ApplyModuleConfiguration(module);
+
+            // Assert
+            action.Should().Throw<Exception>();
+        }
+
+        [Fact]
+        public void NotThrowAnException_WhenTryingToSetAPropertyWithAnInvalidValue_WithErrorSuppressionOn() {
+            // Arrange
+            var module = CreateTestModule1();
+            var config = CreateConfig();
+            config.AddPropertyTo(module.GetType().Name, nameof(module.PublicInt), CreatePropConfig(value: "I'm not an integer!", suppressErrs: true));
+
+            var mock = new Dependencies();
+            var service = CreateService(mock);
+
+            mock.SetupLoadFrom(returnVal: config);
+
+            // Act
+            service.InitializeFrom(CreateOptions());
+            var action = () => service.ApplyModuleConfiguration(module);
+
+            // Assert
+            action.Should().NotThrow();
         }
         #endregion
 
@@ -253,6 +378,11 @@ namespace ServiceModules.Internal.Tests {
             return services.BuildServiceProvider().GetRequiredService<IModuleConfigApplicator>();
         }
         private static ModuleOptions CreateOptions(bool publicOnly = false) => new() { PublicOnly = publicOnly };
+        private static ModulePropertyConfig CreatePropConfig(string value = "test", bool suppressErrs = false)
+            => new() {
+                Value = value,
+                SuppressErrors = suppressErrs
+            };
 
         private static Namespace1.TestModule CreateTestModule1() => new();
         private static Namespace2.TestModule CreateTestModule2() => new();

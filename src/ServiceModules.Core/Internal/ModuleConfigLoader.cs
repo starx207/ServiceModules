@@ -1,9 +1,6 @@
 ﻿using System;
 
 namespace ServiceModules.Internal;
-// TODO: I want to be able to supress configuration errors for specific properties. Errors will be on be default, but users can turn them off if needed.
-//       So the value of a property can be either the value to set the property to, or an array(or object?) where the first element is the property value,
-//       and the second is a boolean indicating whether error supression is on.
 internal class ModuleConfigLoader : IModuleConfigLoader {
     public ModuleConfiguration? LoadFrom(ModuleOptions options) {
         if (options.Configuration is null) {
@@ -19,7 +16,16 @@ internal class ModuleConfigLoader : IModuleConfigLoader {
         var configSection = options.Configuration.GetSection(options.ModuleConfigSectionKey);
         foreach (var moduleSection in configSection.GetChildren()) {
             foreach (var propertySection in moduleSection.GetChildren()) {
-                moduleConfig.AddPropertyTo(moduleSection.Key, propertySection.Key, propertySection.Value);
+                if (propertySection.Value is { }) {
+                    moduleConfig.AddPropertyTo(moduleSection.Key, propertySection.Key, propertySection.Value);
+                } else {
+                    var value = propertySection.GetSection(nameof(ModulePropertyConfig.Value)).Value;
+                    bool.TryParse(propertySection.GetSection(nameof(ModulePropertyConfig.SuppressErrors)).Value, out var suppressErr);
+                    moduleConfig.AddPropertyTo(moduleSection.Key, propertySection.Key, new ModulePropertyConfig() {
+                        Value = value,
+                        SuppressErrors = suppressErr
+                    });
+                }
             }
         }
 

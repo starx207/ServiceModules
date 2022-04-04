@@ -29,18 +29,25 @@ internal class ModuleConfigApplicator : IModuleConfigApplicator {
 
         var propertiesToSet = GetPropertiesToConfigure(moduleType, config);
         GuardUndefinedProperties(moduleType, propertiesToSet, config);
-        GuardUnsettableProperties(moduleType, propertiesToSet);
+        propertiesToSet = FilterUnsettablePropertiesOrThrow(moduleType, propertiesToSet, config);
 
         foreach (var prop in propertiesToSet) {
             var converter = TypeDescriptor.GetConverter(prop.PropertyType);
-            // TODO: This will throw a NotSupportedException if the conversion can't be completed.
-            //       Do I want that? Should I handle the exception? Should I throw my own exception?
-            prop.SetValue(module, converter.ConvertFrom(config[prop.Name]));
+            try {
+                prop.SetValue(module, converter.ConvertFrom(config[prop.Name].Value));
+            } catch {
+                if (!config.TryGetValue(prop.Name, out var value) || !value.SuppressErrors) {
+                    throw;
+                }
+            }
         }
     }
 
-    private void GuardUndefinedProperties(Type moduleType, IEnumerable<PropertyInfo> propertiesToSet, IReadOnlyDictionary<string, string> config) {
-        var undefinedConfigs = config.Keys.Except(propertiesToSet.Select(prop => prop.Name), StringComparer.OrdinalIgnoreCase);
+    private void GuardUndefinedProperties(Type moduleType, IEnumerable<PropertyInfo> propertiesToSet, IReadOnlyDictionary<string, ModulePropertyConfig> config) {
+        var undefinedConfigs = config.Where(cfg => !cfg.Value.SuppressErrors)
+            .Select(cfg => cfg.Key)
+            .Except(propertiesToSet.Select(prop => prop.Name), StringComparer.OrdinalIgnoreCase);
+
         if (undefinedConfigs.Any()) {
             var msg = "Configuration failed for the following non-existant";
             if (_publicOnly) {
@@ -51,8 +58,15 @@ internal class ModuleConfigApplicator : IModuleConfigApplicator {
         }
     }
 
-    private void GuardUnsettableProperties(Type moduleType, IEnumerable<PropertyInfo> propertiesToSet) {
-        var unsettableProps = propertiesToSet.Where(HasInvalidSetter).Select(prop => prop.Name);
+    private IEnumerable<PropertyInfo> FilterUnsettablePropertiesOrThrow(Type moduleType, IEnumerable<PropertyInfo> propertiesToSet, IReadOnlyDictionary<string, ModulePropertyConfig> config) {
+        var ignoreProps = config.Where(cfg => cfg.Value.SuppressErrors).Select(cfg => cfg.Key).ToArray();
+        var settableProps = propertiesToSet.Where(HasValidSetter).ToArray();
+
+        var unsettableProps = propertiesToSet
+            .Where(prop => !ignoreProps.Contains(prop.Name, StringComparer.OrdinalIgnoreCase))
+            .Except(settableProps)
+            .Select(prop => prop.Name);
+
         if (unsettableProps.Any()) {
             var msg = $"Failed to configure {moduleType.Name} because no";
             if (_publicOnly) {
@@ -61,11 +75,13 @@ internal class ModuleConfigApplicator : IModuleConfigApplicator {
             msg += $" setter found for the following properties: {string.Join(", ", unsettableProps)}";
             throw new InvalidOperationException(msg);
         }
+
+        return settableProps;
     }
 
-    private bool HasInvalidSetter(PropertyInfo property) => (_publicOnly ? property.GetSetMethod() : property.SetMethod) == null;
+    private bool HasValidSetter(PropertyInfo property) => (_publicOnly ? property.GetSetMethod() : property.SetMethod) != null;
 
-    private IEnumerable<PropertyInfo> GetPropertiesToConfigure(Type moduleType, IReadOnlyDictionary<string, string> config) {
+    private IEnumerable<PropertyInfo> GetPropertiesToConfigure(Type moduleType, IReadOnlyDictionary<string, ModulePropertyConfig> config) {
         var bindingFlags = BindingFlags.Instance | BindingFlags.Public;
         if (!_publicOnly) {
             bindingFlags |= BindingFlags.NonPublic;
@@ -74,8 +90,8 @@ internal class ModuleConfigApplicator : IModuleConfigApplicator {
         return moduleType.GetProperties(bindingFlags).Where(prop => config.ContainsKey(prop.Name));
     }
 
-    private bool TryExtractConfigForModule(Type moduleType, out IReadOnlyDictionary<string, string> config) {
-        config = new Dictionary<string, string>();
+    private bool TryExtractConfigForModule(Type moduleType, out IReadOnlyDictionary<string, ModulePropertyConfig> config) {
+        config = new Dictionary<string, ModulePropertyConfig>(StringComparer.OrdinalIgnoreCase);
 
         // Namespace + type-name first
         if (_moduleConfig!.TryGetValue(moduleType.FullName, out config)) {

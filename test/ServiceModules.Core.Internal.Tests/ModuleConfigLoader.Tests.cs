@@ -60,7 +60,7 @@ public class ModuleConfigLoader_Should {
             .SelectMany(moduleEntry => moduleEntry.Value
                 .Select(propEntry => KeyValuePair.Create(
                     KeyTransform($"{key}:{moduleEntry.Key}:{propEntry.Key}"),
-                    propEntry.Value
+                    propEntry.Value.Value?.ToString()
                 )))
             .ToArray();
 
@@ -71,14 +71,48 @@ public class ModuleConfigLoader_Should {
         var actualConfig = service.LoadFrom(options);
         // TODO: Is there a way to tell fluentvalidation to ignore case so I don't have to do this?
         var configLowered = new ModuleConfiguration();
-        foreach (var config in actualConfig) {
+        foreach (var config in actualConfig!) {
             foreach (var prop in config.Value) {
-                configLowered.AddPropertyTo(config.Key.ToLower(), prop.Key.ToLower(), prop.Value);
+                configLowered.AddPropertyTo(config.Key.ToLower(), prop.Key.ToLower(), prop.Value.Value?.ToString()!);
             }
         }
 
         // Assert
         configLowered.Should().BeEquivalentTo(expectedConfig);
+    }
+
+    [Fact]
+    public void CreateTheConfiguration_UsingAMixOfFull_AndSimpleConfig() {
+        // Arrange
+        var key = "my_module_config";
+        var expectedConfig = new ModuleConfiguration();
+        expectedConfig.AddPropertyTo("module1", "prop1", CreatePropCfg(value: "val1"));
+        expectedConfig.AddPropertyTo("module1", "prop2", "val2");
+        expectedConfig.AddPropertyTo("module1", "prop3", CreatePropCfg(value: "val2", suppressErrors: true));
+
+        var configEntries = expectedConfig
+            .SelectMany(moduleEntry => moduleEntry.Value
+                .Select(propEntry => KeyValuePair.Create(
+                    $"{key}:{moduleEntry.Key}:{propEntry.Key}" + (propEntry.Key == "prop2" ? "" : $":{nameof(propEntry.Value.Value)}"),
+                    propEntry.Value.Value?.ToString()
+                )))
+            .ToList();
+
+        // Add the error suppression entries
+        configEntries.AddRange(expectedConfig.SelectMany(moduleEntry => moduleEntry.Value
+            .Where(propEntry => propEntry.Key != "prop2")
+            .Select(propEntry => KeyValuePair.Create(
+                $"{key}:{moduleEntry.Key}:{propEntry.Key}:{nameof(propEntry.Value.SuppressErrors)}",
+                propEntry.Value.SuppressErrors.ToString())))!);
+
+        var options = CreateOptions(builder => builder.AddInMemoryCollection(configEntries), sectionKey: key);
+        var service = CreateService();
+
+        // Act
+        var actualConfig = service.LoadFrom(options);
+
+        // Assert
+        actualConfig.Should().BeEquivalentTo(expectedConfig);
     }
 
     [Fact]
@@ -97,7 +131,7 @@ public class ModuleConfigLoader_Should {
             .SelectMany(moduleEntry => moduleEntry.Value
                 .Select(propEntry => KeyValuePair.Create(
                     $"{key}:{moduleEntry.Key}:{propEntry.Key}",
-                    propEntry.Value
+                    propEntry.Value.Value?.ToString()
                 )))
             .ToArray();
 
@@ -142,5 +176,7 @@ public class ModuleConfigLoader_Should {
         }
         return options;
     }
+    private static ModulePropertyConfig CreatePropCfg(object? value = null, bool suppressErrors = false)
+        => new() { Value = value, SuppressErrors = suppressErrors };
     #endregion
 }
