@@ -4,9 +4,19 @@
     <TargetFramework>net6.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
 
-    <PackageId>ServiceModules.AspNetCore</PackageId>
-    <PackageVersion>1.0.0-test-3</PackageVersion>
-    <Description>AspNetCore extensions</Description>
+    <PackageId>ServiceRegistryModules.AspNetCore</PackageId>
+    <PackageVersion>1.0.0</PackageVersion>
+    <Authors>Andrew Starr</Authors>
+    <Description>
+      ASP.NET extensions for ServiceRegistryModules
+    </Description>
+    <Copyright>Copyright (c) 2022</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageTags>modules;IServiceCollection;dependency injection;WebApplicationBuilder</PackageTags>
+    <ProjectUrl>https://github.com/starx207/ServiceRegistryModules</ProjectUrl>
+    <RepositoryUrl>https://github.com/starx207/ServiceRegistryModules</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
   </PropertyGroup>
 
   <ItemGroup>
@@ -20,6 +30,10 @@
   <ItemGroup>
     <InternalsVisibleTo Include="ServiceRegistryModules.AspNetCore.Tests" />
     <InternalsVisibleTo Include="DynamicProxyGenAssembly2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
   
 </Project>

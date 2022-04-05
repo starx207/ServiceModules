@@ -3,9 +3,19 @@
   <PropertyGroup>
     <TargetFramework>netstandard2.1</TargetFramework>
 
-    <PackageId>ServiceModules</PackageId>
-    <PackageVersion>1.0.0-test-3</PackageVersion>
-    <Description>Test nuget pack</Description>
+    <PackageId>ServiceRegistryModules</PackageId>
+    <PackageVersion>1.0.0</PackageVersion>
+    <Authors>Andrew Starr</Authors>
+    <Description>
+      Flexible modules for registering services with IServiceCollection
+    </Description>
+    <Copyright>Copyright (c) 2022</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageTags>modules;IServiceCollection;dependency injection</PackageTags>
+    <ProjectUrl>https://github.com/starx207/ServiceRegistryModules</ProjectUrl>
+    <RepositoryUrl>https://github.com/starx207/ServiceRegistryModules</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
   </PropertyGroup>
 
   <ItemGroup>
@@ -23,6 +33,10 @@
 
   <ItemGroup>
     <ProjectReference Include="..\ServiceRegistryModules.Abstractions\ServiceRegistryModules.Abstractions.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
   
 </Project>
