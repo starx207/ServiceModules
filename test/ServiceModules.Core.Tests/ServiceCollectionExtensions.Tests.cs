@@ -69,7 +69,7 @@ public class ServiceCollectionExtensions_Should {
         var services = CreateServices(mock);
 
         // Act
-        services.ApplyRegistries(config => config.FromAssemblies(
+        services.ApplyRegistries(config => config.FromAssembliesOf(
             typeof(TestSamples1.TestRegistry1),
             typeof(TestSamples2.TestRegistry1)
         ));
@@ -92,7 +92,7 @@ public class ServiceCollectionExtensions_Should {
         var services = CreateServices(mock);
 
         // Act
-        services.ApplyRegistries(config => config.WithProviders(providers));
+        services.ApplyRegistries(config => config.UsingProviders(providers));
 
         // Assert
         using (new AssertionScope()) {
@@ -110,7 +110,7 @@ public class ServiceCollectionExtensions_Should {
         var services = CreateServices(mock);
 
         // Act
-        services.ApplyRegistries(config => config.WithProviders("Hello", "World"));
+        services.ApplyRegistries(config => config.UsingProviders("Hello", "World"));
 
         // Assert
         mock.OptionsApplied?.Providers.Should()
@@ -125,7 +125,7 @@ public class ServiceCollectionExtensions_Should {
         var services = CreateServices(mock);
 
         // Act
-        services.ApplyRegistries(config => config.UsingRegistries(typeof(TestRegistry1)));
+        services.ApplyRegistries(config => config.OfTypes(typeof(TestRegistry1)));
 
         // Assert
         mock.OptionsApplied?.RegistryTypes.Should().Equal(typeof(TestRegistry1));
@@ -138,7 +138,7 @@ public class ServiceCollectionExtensions_Should {
 
         // Act
         var action = () => services.ApplyRegistries(config
-            => config.UsingRegistries(typeof(TestService1), typeof(Dependencies)));
+            => config.OfTypes(typeof(TestService1), typeof(Dependencies)));
 
         // Assert
         action.Should().Throw<InvalidOperationException>()
@@ -157,9 +157,9 @@ public class ServiceCollectionExtensions_Should {
         // Act
         services.ApplyRegistries(config => {
             if (setThroughProviderExtension) {
-                config.WithProviders(expectedEnv);
+                config.UsingProviders(expectedEnv);
             } else {
-                config.WithEnvironment(expectedEnv);
+                config.UsingEnvironment(expectedEnv);
             }
         });
 
@@ -183,8 +183,8 @@ public class ServiceCollectionExtensions_Should {
 
         // Act
         services.ApplyRegistries(config
-            => config.WithEnvironment(firstEnv)
-                .WithEnvironment(expectedEnv));
+            => config.UsingEnvironment(firstEnv)
+                .UsingEnvironment(expectedEnv));
 
         // Assert
         using (new AssertionScope()) {
@@ -205,7 +205,7 @@ public class ServiceCollectionExtensions_Should {
         var services = CreateServices(mock);
 
         // Act
-        var action = () => services.ApplyRegistries(config => config.WithEnvironment(new TestService1()));
+        var action = () => services.ApplyRegistries(config => config.UsingEnvironment(new TestService1()));
 
         // Assert
         action.Should().Throw<InvalidOperationException>()
@@ -224,9 +224,9 @@ public class ServiceCollectionExtensions_Should {
         // Act
         services.ApplyRegistries(config => {
             if (setThroughProviderExtension) {
-                config.WithProviders(expectedCfg);
+                config.UsingProviders(expectedCfg);
             } else {
-                config.WithConfiguration(expectedCfg);
+                config.UsingConfigurationProvider(expectedCfg);
             }
         });
 
@@ -248,8 +248,8 @@ public class ServiceCollectionExtensions_Should {
 
         // Act
         services.ApplyRegistries(config
-            => config.WithConfiguration(firstCfg)
-                .WithConfiguration(expectedCfg));
+            => config.UsingConfigurationProvider(firstCfg)
+                .UsingConfigurationProvider(expectedCfg));
 
         // Assert
         using (new AssertionScope()) {
@@ -269,7 +269,7 @@ public class ServiceCollectionExtensions_Should {
         // Act
         services.ApplyRegistries(config
             => config.FromAssemblies(registry.GetType().Assembly)
-                .UsingRegistries(registry));
+                .From(registry));
 
         // Assert
         mock.OptionsApplied?.RegistryTypes.Should().NotContain(registry.GetType());

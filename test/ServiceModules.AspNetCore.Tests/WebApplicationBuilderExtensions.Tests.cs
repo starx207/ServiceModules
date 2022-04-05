@@ -98,7 +98,7 @@ public class WebApplicationBuilderExtensions_Should {
         var services = CreateBuilder(mock);
 
         // Act
-        services.ApplyRegistries(config => config.FromAssemblies(
+        services.ApplyRegistries(config => config.FromAssembliesOf(
             typeof(TestSamples1.TestRegistry1),
             typeof(TestSamples2.TestRegistry1)
         ));
@@ -121,7 +121,7 @@ public class WebApplicationBuilderExtensions_Should {
         var services = CreateBuilder(mock);
 
         // Act
-        services.ApplyRegistries(config => config.WithProviders(providers));
+        services.ApplyRegistries(config => config.UsingProviders(providers));
 
         // Assert
         using (new AssertionScope()) {
@@ -139,7 +139,7 @@ public class WebApplicationBuilderExtensions_Should {
         var services = CreateBuilder(mock);
 
         // Act
-        services.ApplyRegistries(config => config.WithProviders("Hello", "World"));
+        services.ApplyRegistries(config => config.UsingProviders("Hello", "World"));
 
         // Assert
         mock.OptionsApplied?.Providers.Should()
@@ -154,7 +154,7 @@ public class WebApplicationBuilderExtensions_Should {
         var services = CreateBuilder(mock);
 
         // Act
-        services.ApplyRegistries(config => config.UsingRegistries(typeof(TestRegistry1)));
+        services.ApplyRegistries(config => config.OfTypes(typeof(TestRegistry1)));
 
         // Assert
         mock.OptionsApplied?.RegistryTypes.Should().Equal(typeof(TestRegistry1));
@@ -167,7 +167,7 @@ public class WebApplicationBuilderExtensions_Should {
 
         // Act
         var action = () => services.ApplyRegistries(config
-            => config.UsingRegistries(typeof(TestService1), typeof(Dependencies)));
+            => config.OfTypes(typeof(TestService1), typeof(Dependencies)));
 
         // Assert
         action.Should().Throw<InvalidOperationException>()
@@ -184,7 +184,7 @@ public class WebApplicationBuilderExtensions_Should {
         // Act
         services.ApplyRegistries(config
             => config.FromAssemblies(registry.GetType().Assembly)
-                .UsingRegistries(registry));
+                .From(registry));
 
         // Assert
         mock.OptionsApplied?.RegistryTypes.Should().NotContain(registry.GetType());

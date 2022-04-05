@@ -38,8 +38,8 @@ public static class WebApplicationBuilderExtensions {
     private static void ApplyRegistries(this WebApplicationBuilder builder, Action<WebApplicationRegistryConfiguration> registryConfiguration, Assembly callingAssembly)
         => builder.Services.ApplyRegistries(config => {
             config.WithDefaultAssembly(callingAssembly)
-            .WithConfiguration(builder.Configuration)
-            .WithEnvironment(builder.Environment);
+            .UsingConfigurationProvider(builder.Configuration)
+            .UsingEnvironment(builder.Environment);
 
             var webAppConfig = new WebApplicationRegistryConfiguration(config);
             registryConfiguration(webAppConfig);

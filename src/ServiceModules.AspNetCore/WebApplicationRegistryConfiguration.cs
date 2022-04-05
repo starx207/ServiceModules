@@ -20,9 +20,15 @@ public class WebApplicationRegistryConfiguration {
         return this;
     }
 
-    /// <inheritdoc cref="ServiceCollectionRegistryConfiguration.FromAssemblies(Type[])"/>
-    public WebApplicationRegistryConfiguration FromAssemblies(params Type[] assemblyMarkers) {
-        _configBuilder.FromAssemblies(assemblyMarkers);
+    /// <inheritdoc cref="ServiceCollectionRegistryConfiguration.FromAssemblyOf{T}"/>
+    public WebApplicationRegistryConfiguration FromAssemblyOf<T>() {
+        _configBuilder.FromAssemblyOf<T>();
+        return this;
+    }
+
+    /// <inheritdoc cref="ServiceCollectionRegistryConfiguration.FromAssembliesOf(Type[])"/>
+    public WebApplicationRegistryConfiguration FromAssembliesOf(params Type[] assemblyMarkers) {
+        _configBuilder.FromAssembliesOf(assemblyMarkers);
         return this;
     }
 
@@ -32,21 +38,21 @@ public class WebApplicationRegistryConfiguration {
         return this;
     }
 
-    /// <inheritdoc cref="ServiceCollectionRegistryConfiguration.WithProviders(object[])"/>
-    public WebApplicationRegistryConfiguration WithProviders(params object[] providers) {
-        _configBuilder.WithProviders(providers);
+    /// <inheritdoc cref="ServiceCollectionRegistryConfiguration.UsingProviders(object[])"/>
+    public WebApplicationRegistryConfiguration UsingProviders(params object[] providers) {
+        _configBuilder.UsingProviders(providers);
         return this;
     }
 
-    /// <inheritdoc cref="ServiceCollectionRegistryConfiguration.UsingRegistries(Type[])"/>
-    public WebApplicationRegistryConfiguration UsingRegistries(params Type[] registryTypes) {
-        _configBuilder.UsingRegistries(registryTypes);
+    /// <inheritdoc cref="ServiceCollectionRegistryConfiguration.OfTypes(Type[])"/>
+    public WebApplicationRegistryConfiguration OfTypes(params Type[] registryTypes) {
+        _configBuilder.OfTypes(registryTypes);
         return this;
     }
 
-    /// <inheritdoc cref="ServiceCollectionRegistryConfiguration.UsingRegistries(IRegistryModule[])"/>
-    public WebApplicationRegistryConfiguration UsingRegistries(params IRegistryModule[] registries) {
-        _configBuilder.UsingRegistries(registries);
+    /// <inheritdoc cref="ServiceCollectionRegistryConfiguration.From(IRegistryModule[])"/>
+    public WebApplicationRegistryConfiguration From(params IRegistryModule[] registries) {
+        _configBuilder.From(registries);
         return this;
     }
 

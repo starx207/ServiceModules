@@ -41,12 +41,19 @@ public class ServiceCollectionRegistryConfiguration {
     }
 
     /// <summary>
+    /// The assembly to scan for <see cref="IRegistryModule"/> implementations.
+    /// </summary>
+    /// <typeparam name="T">A type defined in the assembly to scan</typeparam>
+    /// <returns></returns>
+    public ServiceCollectionRegistryConfiguration FromAssemblyOf<T>() => FromAssembliesOf(typeof(T));
+
+    /// <summary>
     /// The assemblies to scan for <see cref="IRegistryModule"/> implementations.
     /// </summary>
-    /// <param name="assemblyMarkers">Types from the assemblies to scan</param>
+    /// <param name="assemblyMarkers">Types defined in the assemblies to scan</param>
     /// <returns></returns>
     /// <exception cref="ArgumentNullException"></exception>
-    public ServiceCollectionRegistryConfiguration FromAssemblies(params Type[] assemblyMarkers)
+    public ServiceCollectionRegistryConfiguration FromAssembliesOf(params Type[] assemblyMarkers)
         => FromAssemblies(assemblyMarkers.Select(marker => marker.Assembly).ToArray());
 
     /// <summary>
@@ -80,16 +87,16 @@ public class ServiceCollectionRegistryConfiguration {
     /// <param name="providers"></param>
     /// <returns></returns>
     /// <exception cref="ArgumentNullException"></exception>
-    public ServiceCollectionRegistryConfiguration WithProviders(params object[] providers) {
+    public ServiceCollectionRegistryConfiguration UsingProviders(params object[] providers) {
         if (providers is null) {
             throw new ArgumentNullException(nameof(providers));
         }
 
         foreach (var provider in providers) {
             if (_hostEnvironmentType.IsAssignableFrom(provider.GetType())) {
-                WithEnvironment(provider);
+                UsingEnvironment(provider);
             } else if (_configurationType.IsAssignableFrom(provider.GetType())) {
-                WithConfiguration((IConfiguration)provider);
+                UsingConfigurationProvider((IConfiguration)provider);
             } else {
                 AddProvider(provider, false);
             }
@@ -104,7 +111,7 @@ public class ServiceCollectionRegistryConfiguration {
     /// <param name="registryTypes"></param>
     /// <returns></returns>
     /// <exception cref="ArgumentNullException"></exception>
-    public ServiceCollectionRegistryConfiguration UsingRegistries(params Type[] registryTypes) {
+    public ServiceCollectionRegistryConfiguration OfTypes(params Type[] registryTypes) {
         if (registryTypes is null) {
             throw new ArgumentNullException(nameof(registryTypes));
         }
@@ -128,7 +135,7 @@ public class ServiceCollectionRegistryConfiguration {
     /// <param name="registries"></param>
     /// <returns></returns>
     /// <exception cref="ArgumentNullException"></exception>
-    public ServiceCollectionRegistryConfiguration UsingRegistries(params IRegistryModule[] registries) {
+    public ServiceCollectionRegistryConfiguration From(params IRegistryModule[] registries) {
         if (registries is null) {
             throw new ArgumentNullException(nameof(registries));
         }
@@ -150,7 +157,7 @@ public class ServiceCollectionRegistryConfiguration {
     /// <returns></returns>
     /// <exception cref="ArgumentNullException"></exception>
     /// <exception cref="InvalidOperationException">When the <paramref name="environment"/> does not implement <see cref="IHostEnvironment"/></exception>
-    public virtual ServiceCollectionRegistryConfiguration WithEnvironment(object environment) {
+    public ServiceCollectionRegistryConfiguration UsingEnvironment(object environment) {
         if (environment is null) {
             throw new ArgumentNullException(nameof(environment));
         }
@@ -172,7 +179,7 @@ public class ServiceCollectionRegistryConfiguration {
     /// <param name="configuration">The configuration to use</param>
     /// <returns></returns>
     /// <exception cref="ArgumentNullException"></exception>
-    public virtual ServiceCollectionRegistryConfiguration WithConfiguration(IConfiguration configuration) {
+    public ServiceCollectionRegistryConfiguration UsingConfigurationProvider(IConfiguration configuration) {
         if (configuration is null) {
             throw new ArgumentNullException(nameof(configuration));
         }
