@@ -3,31 +3,31 @@ using System.Linq;
 using System.Reflection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
-using ServiceModules.Internal;
+using ServiceRegistryModules.Internal;
 
-namespace ServiceModules;
-public class ServiceCollectionModuleConfiguration {
+namespace ServiceRegistryModules;
+public class ServiceCollectionRegistryConfiguration {
     private static readonly Type _hostEnvironmentType = typeof(IHostEnvironment);
     private static readonly Type _configurationType = typeof(IConfiguration);
 
-    private readonly ModuleOptions _options;
+    private readonly RegistryOptions _options;
     private bool _entryAssemblyAttempted = false;
     private Assembly? _defaultAssembly;
 
-    internal ServiceCollectionModuleConfiguration() : this(new ModuleOptions()) { }
-    internal ServiceCollectionModuleConfiguration(ModuleOptions options) => _options = options;
+    internal ServiceCollectionRegistryConfiguration() : this(new RegistryOptions()) { }
+    internal ServiceCollectionRegistryConfiguration(RegistryOptions options) => _options = options;
 
     /// <summary>
-    /// Set the key used to load the module configurations from <see cref="IConfiguration"/>
+    /// Set the key used to load the registry configurations from <see cref="IConfiguration"/>
     /// </summary>
     /// <param name="sectionKey">The configuration key</param>
     /// <returns></returns>
     /// <exception cref="ArgumentException"></exception>
-    public ServiceCollectionModuleConfiguration UsingModuleConfigurationSection(string sectionKey) {
+    public ServiceCollectionRegistryConfiguration WithConfigurationsFromSection(string sectionKey) {
         if (string.IsNullOrWhiteSpace(sectionKey)) {
             throw new ArgumentException($"'{nameof(sectionKey)}' cannot be null or whitespace.", nameof(sectionKey));
         }
-        _options.ModuleConfigSectionKey = sectionKey;
+        _options.RegistryConfigSectionKey = sectionKey;
         return this;
     }
 
@@ -35,7 +35,7 @@ public class ServiceCollectionModuleConfiguration {
     /// Only run public <see cref="IRegistryModule"/> implementations
     /// </summary>
     /// <returns></returns>
-    public ServiceCollectionModuleConfiguration PublicOnly() {
+    public ServiceCollectionRegistryConfiguration PublicOnly() {
         _options.PublicOnly = true;
         return this;
     }
@@ -46,7 +46,7 @@ public class ServiceCollectionModuleConfiguration {
     /// <param name="assemblyMarkers">Types from the assemblies to scan</param>
     /// <returns></returns>
     /// <exception cref="ArgumentNullException"></exception>
-    public ServiceCollectionModuleConfiguration FromAssemblies(params Type[] assemblyMarkers)
+    public ServiceCollectionRegistryConfiguration FromAssemblies(params Type[] assemblyMarkers)
         => FromAssemblies(assemblyMarkers.Select(marker => marker.Assembly).ToArray());
 
     /// <summary>
@@ -55,32 +55,32 @@ public class ServiceCollectionModuleConfiguration {
     /// <param name="assemblies">The assemblies to scan</param>
     /// <returns></returns>
     /// <exception cref="ArgumentNullException"></exception>
-    public ServiceCollectionModuleConfiguration FromAssemblies(params Assembly[] assemblies) {
+    public ServiceCollectionRegistryConfiguration FromAssemblies(params Assembly[] assemblies) {
         if (assemblies is not { Length: > 0 }) {
             throw new ArgumentException("No assemblies given to scan", nameof(assemblies));
         }
 
-        var moduleTypes = assemblies.Distinct()
+        var registryTypes = assemblies.Distinct()
             .SelectMany(assm => assm.GetTypes())
             .Where(t => t.IsClass && !t.IsAbstract)
             .Where(t => t.GetInterface(nameof(IRegistryModule)) != null)
-            .Where(t => !_options.ModuleTypes.Contains(t))
+            .Where(t => !_options.RegistryTypes.Contains(t))
             .Distinct()
             .ToArray();
 
-        if (moduleTypes.Length > 0) {
-            _options.ModuleTypes.AddRange(moduleTypes);
+        if (registryTypes.Length > 0) {
+            _options.RegistryTypes.AddRange(registryTypes);
         }
         return this;
     }
 
     /// <summary>
-    /// Additional providers to use when activating modules
+    /// Additional providers to use when activating registries
     /// </summary>
     /// <param name="providers"></param>
     /// <returns></returns>
     /// <exception cref="ArgumentNullException"></exception>
-    public ServiceCollectionModuleConfiguration WithProviders(params object[] providers) {
+    public ServiceCollectionRegistryConfiguration WithProviders(params object[] providers) {
         if (providers is null) {
             throw new ArgumentNullException(nameof(providers));
         }
@@ -99,23 +99,23 @@ public class ServiceCollectionModuleConfiguration {
     }
 
     /// <summary>
-    /// Individual module types to run
+    /// Individual <see cref="IRegistryModule"/> types to run
     /// </summary>
-    /// <param name="moduleTypes"></param>
+    /// <param name="registryTypes"></param>
     /// <returns></returns>
     /// <exception cref="ArgumentNullException"></exception>
-    public ServiceCollectionModuleConfiguration UsingModules(params Type[] moduleTypes) {
-        if (moduleTypes is null) {
-            throw new ArgumentNullException(nameof(moduleTypes));
+    public ServiceCollectionRegistryConfiguration UsingRegistries(params Type[] registryTypes) {
+        if (registryTypes is null) {
+            throw new ArgumentNullException(nameof(registryTypes));
         }
-        var invalidModuleTypes = moduleTypes.Where(t => !typeof(IRegistryModule).IsAssignableFrom(t)).Select(t => t.Name);
-        if (invalidModuleTypes.Any()) {
-            throw new InvalidOperationException($"The following module types do not implement {nameof(IRegistryModule)}: {string.Join(", ", invalidModuleTypes)}");
+        var invalidRegistryTypes = registryTypes.Where(t => !typeof(IRegistryModule).IsAssignableFrom(t)).Select(t => t.Name);
+        if (invalidRegistryTypes.Any()) {
+            throw new InvalidOperationException($"The following registry types do not implement {nameof(IRegistryModule)}: {string.Join(", ", invalidRegistryTypes)}");
         }
 
-        foreach (var modType in moduleTypes) {
-            if (!_options.ModuleTypes.Contains(modType)) {
-                _options.ModuleTypes.Add(modType);
+        foreach (var regType in registryTypes) {
+            if (!_options.RegistryTypes.Contains(regType)) {
+                _options.RegistryTypes.Add(regType);
             }
         }
 
@@ -123,19 +123,19 @@ public class ServiceCollectionModuleConfiguration {
     }
 
     /// <summary>
-    /// Any explicitly created module to run
+    /// Any explicitly created registry instance to run
     /// </summary>
-    /// <param name="modules"></param>
+    /// <param name="registries"></param>
     /// <returns></returns>
     /// <exception cref="ArgumentNullException"></exception>
-    public ServiceCollectionModuleConfiguration UsingModules(params IRegistryModule[] modules) {
-        if (modules is null) {
-            throw new ArgumentNullException(nameof(modules));
+    public ServiceCollectionRegistryConfiguration UsingRegistries(params IRegistryModule[] registries) {
+        if (registries is null) {
+            throw new ArgumentNullException(nameof(registries));
         }
 
-        foreach (var module in modules) {
-            if (!_options.Modules.Contains(module)) {
-                _options.Modules.Add(module);
+        foreach (var registry in registries) {
+            if (!_options.Registries.Contains(registry)) {
+                _options.Registries.Add(registry);
             }
         }
 
@@ -143,14 +143,14 @@ public class ServiceCollectionModuleConfiguration {
     }
 
     /// <summary>
-    /// Sets the environment to use when registering modules.
+    /// Sets the environment to use when applying registries.
     /// Required to enforce <see cref="IRegistryModule.TargetEnvironment"/>.
     /// </summary>
     /// <param name="environment">The environment to use</param>
     /// <returns></returns>
     /// <exception cref="ArgumentNullException"></exception>
     /// <exception cref="InvalidOperationException">When the <paramref name="environment"/> does not implement <see cref="IHostEnvironment"/></exception>
-    public virtual ServiceCollectionModuleConfiguration WithEnvironment(object environment) {
+    public virtual ServiceCollectionRegistryConfiguration WithEnvironment(object environment) {
         if (environment is null) {
             throw new ArgumentNullException(nameof(environment));
         }
@@ -166,13 +166,13 @@ public class ServiceCollectionModuleConfiguration {
     }
 
     /// <summary>
-    /// The <see cref="IConfiguration"/> to provide when registering modules.
-    /// Only needed if using it as a module provider
+    /// The <see cref="IConfiguration"/> to provide when applying registries.
+    /// Only needed if it is used by a registry
     /// </summary>
     /// <param name="configuration">The configuration to use</param>
     /// <returns></returns>
     /// <exception cref="ArgumentNullException"></exception>
-    public virtual ServiceCollectionModuleConfiguration WithConfiguration(IConfiguration configuration) {
+    public virtual ServiceCollectionRegistryConfiguration WithConfiguration(IConfiguration configuration) {
         if (configuration is null) {
             throw new ArgumentNullException(nameof(configuration));
         }
@@ -183,29 +183,29 @@ public class ServiceCollectionModuleConfiguration {
         return this;
     }
 
-    internal ServiceCollectionModuleConfiguration WithDefaultAssembly(Assembly assembly) {
+    internal ServiceCollectionRegistryConfiguration WithDefaultAssembly(Assembly assembly) {
         _defaultAssembly = assembly;
         return this;
     }
 
-    internal ModuleOptions GetOptions() {
-        if (!_options.Modules.Any() && !_options.ModuleTypes.Any()) {
+    internal RegistryOptions GetOptions() {
+        if (!_options.Registries.Any() && !_options.RegistryTypes.Any()) {
             AttemptToLoadFromDefaultAssembly();
         }
-        RemoveModuleTypesWithConcreteImplementations();
+        RemoveRegistryTypesWithConcreteImplementations();
         return _options;
     }
 
-    private void RemoveModuleTypesWithConcreteImplementations() {
-        if (_options.Modules.Any() && _options.ModuleTypes.Any()) {
-            var concreteTypes = _options.Modules.Select(m => m.GetType());
-            _options.ModuleTypes.RemoveAll(mt => concreteTypes.Contains(mt));
+    private void RemoveRegistryTypesWithConcreteImplementations() {
+        if (_options.Registries.Any() && _options.RegistryTypes.Any()) {
+            var concreteTypes = _options.Registries.Select(m => m.GetType());
+            _options.RegistryTypes.RemoveAll(mt => concreteTypes.Contains(mt));
         }
     }
 
     private void AddAllowedArgType(Type type) {
-        if (!_options.AllowedModuleArgTypes.Contains(type)) {
-            _options.AllowedModuleArgTypes.Add(type);
+        if (!_options.AllowedRegistryCtorArgTypes.Contains(type)) {
+            _options.AllowedRegistryCtorArgTypes.Add(type);
         }
     }
 
@@ -228,15 +228,15 @@ public class ServiceCollectionModuleConfiguration {
 
         if (providerExists && replaceExisting) {
             _options.Providers.Remove(existingProvider!);
-            _options.AllowedModuleArgTypes.Remove(existingProvider!.GetType());
+            _options.AllowedRegistryCtorArgTypes.Remove(existingProvider!.GetType());
             providerExists = false;
         }
 
         if (!providerExists) {
             _options.Providers.Add(provider);
-            _options.AllowedModuleArgTypes.Add(provider.GetType());
-            var newArgTypes = additionalArgsTypes.Except(_options.AllowedModuleArgTypes).ToArray();
-            _options.AllowedModuleArgTypes.AddRange(newArgTypes);
+            _options.AllowedRegistryCtorArgTypes.Add(provider.GetType());
+            var newArgTypes = additionalArgsTypes.Except(_options.AllowedRegistryCtorArgTypes).ToArray();
+            _options.AllowedRegistryCtorArgTypes.AddRange(newArgTypes);
         }
     }
 }

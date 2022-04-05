@@ -1,5 +1,5 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
-using ServiceModules;
+using ServiceRegistryModules;
 
 namespace TestSamples1;
 public class TestRegistry2 : AbstractRegistryModule {

@@ -3,23 +3,23 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 
-namespace ServiceModules.Internal;
-internal class ModuleActivator : IModuleActivator {
-    public IEnumerable<IRegistryModule> InstantiateModules(ModuleOptions options) {
-        var typesToCreate = options.ModuleTypes.AsEnumerable();
+namespace ServiceRegistryModules.Internal;
+internal class RegistryActivator : IRegistryActivator {
+    public IEnumerable<IRegistryModule> InstantiateRegistries(RegistryOptions options) {
+        var typesToCreate = options.RegistryTypes.AsEnumerable();
         if (options.PublicOnly) {
             typesToCreate = typesToCreate.Where(IsTypePublic);
         }
 
-        var createdModules = !typesToCreate.Any()
+        var createdRegistries = !typesToCreate.Any()
             ? Enumerable.Empty<IRegistryModule>()
-            : typesToCreate.Select(t => FindConstructorWithArgsThatSatisfy(t, options.AllowedModuleArgTypes) is { } ctor
-                    ? CreateModuleInstance(ctor, options)
+            : typesToCreate.Select(t => FindConstructorWithArgsThatSatisfy(t, options.AllowedRegistryCtorArgTypes) is { } ctor
+                    ? CreateRegistryInstance(ctor, options)
                     : throw new InvalidOperationException($"Unable to activate {nameof(IRegistryModule)} of type '{t.Name}' " +
                     $"-- no suitable constructor found. " +
-                    $"Allowable constructor parameters are: {string.Join(", ", options.AllowedModuleArgTypes)}"));
+                    $"Allowable constructor parameters are: {string.Join(", ", options.AllowedRegistryCtorArgTypes)}"));
 
-        return createdModules.Concat(options.Modules)
+        return createdRegistries.Concat(options.Registries)
             .OrderByDescending(m => m.Priority)
             .ToArray();
     }
@@ -37,7 +37,7 @@ internal class ModuleActivator : IModuleActivator {
         return IsTypePublic(type.DeclaringType);
     }
 
-    private IRegistryModule CreateModuleInstance(ConstructorInfo ctor, ModuleOptions options) {
+    private IRegistryModule CreateRegistryInstance(ConstructorInfo ctor, RegistryOptions options) {
         var ctorParams = ctor.GetParameters();
         var paramInstances = new object[ctorParams.Length];
 
@@ -49,10 +49,10 @@ internal class ModuleActivator : IModuleActivator {
         return (IRegistryModule)ctor.Invoke(paramInstances);
     }
 
-    private ConstructorInfo? FindConstructorWithArgsThatSatisfy(Type moduleType, IEnumerable<Type> availableArgs) {
+    private ConstructorInfo? FindConstructorWithArgsThatSatisfy(Type registryType, IEnumerable<Type> availableArgs) {
         var availableCount = availableArgs.Count();
 
-        return moduleType.GetConstructors(BindingFlags.Public | BindingFlags.Instance)
+        return registryType.GetConstructors(BindingFlags.Public | BindingFlags.Instance)
             .Select(ctor => new { ctor, @params = ctor.GetParameters() })
             .Where(info => info.@params.Length <= availableCount) // Remove constructors with more parameters than the available args
             .Where(info => info.@params.All(p => availableArgs.Any(arg => p.ParameterType.IsAssignableFrom(arg)))) // Remove constructors with the wrong types of args

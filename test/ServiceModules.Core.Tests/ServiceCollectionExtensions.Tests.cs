@@ -7,10 +7,10 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using Moq;
-using ServiceModules.Internal;
+using ServiceRegistryModules.Internal;
 using Xunit;
 
-namespace ServiceModules.Tests;
+namespace ServiceRegistryModules.Tests;
 public class ServiceCollectionExtensions_Should {
     #region Tests
     [Fact]
@@ -19,48 +19,48 @@ public class ServiceCollectionExtensions_Should {
         var mock = new Dependencies();
         var services = CreateServices(mock);
         var expectedOptions = CreateOptions();
-        expectedOptions.ModuleConfigSectionKey = "registry_modules";
+        expectedOptions.RegistryConfigSectionKey = "service_registries";
         expectedOptions.PublicOnly = false;
-        expectedOptions.ModuleTypes.Add(typeof(TestModule1));
+        expectedOptions.RegistryTypes.Add(typeof(TestRegistry1));
 
         // Act
-        services.ApplyModules();
+        services.ApplyRegistries();
 
         // Assert
         mock.OptionsApplied.Should().BeEquivalentTo(expectedOptions);
     }
 
     [Fact]
-    public void AllowForSettingTheModuleConfigSectionKey_InTheModuleOptions() {
+    public void AllowForSettingTheRegistryConfigSectionKey_InTheRegistryOptions() {
         // Arrange
         var expectedKey = "some_other_config_key";
         var mock = new Dependencies();
         var services = CreateServices(mock);
 
         // Act
-        services.ApplyModules(config => config.UsingModuleConfigurationSection(expectedKey));
+        services.ApplyRegistries(config => config.WithConfigurationsFromSection(expectedKey));
 
         // Assert
-        mock.OptionsApplied?.ModuleConfigSectionKey.Should().Be(expectedKey);
+        mock.OptionsApplied?.RegistryConfigSectionKey.Should().Be(expectedKey);
     }
 
     [Fact]
-    public void AllowForRegisteringOnlyPublicModules() {
+    public void AllowForRegisteringOnlyPublicRegistries() {
         // Arrange
         var mock = new Dependencies();
         var services = CreateServices(mock);
 
         // Act
-        services.ApplyModules(config => config.PublicOnly());
+        services.ApplyRegistries(config => config.PublicOnly());
 
         // Assert
         mock.OptionsApplied?.PublicOnly.Should().BeTrue();
     }
 
     [Fact]
-    public void AddAllModulesTypes_InTheGivenAssemblies_ToTheModuleOptions() {
+    public void AddAllRegistryTypes_InTheGivenAssemblies_ToTheRegistryOptions() {
         // Arrange
-        var expectedModules = new[] {
+        var expectedRegistries = new[] {
             typeof(TestSamples1.TestRegistry1),
             typeof(TestSamples1.TestRegistry2),
             typeof(TestSamples2.TestRegistry1)
@@ -69,17 +69,17 @@ public class ServiceCollectionExtensions_Should {
         var services = CreateServices(mock);
 
         // Act
-        services.ApplyModules(config => config.FromAssemblies(
+        services.ApplyRegistries(config => config.FromAssemblies(
             typeof(TestSamples1.TestRegistry1),
             typeof(TestSamples2.TestRegistry1)
         ));
 
         // Assert
-        mock.OptionsApplied?.ModuleTypes.Should().BeEquivalentTo(expectedModules);
+        mock.OptionsApplied?.RegistryTypes.Should().BeEquivalentTo(expectedRegistries);
     }
 
     [Fact]
-    public void AddTheGivenProviders_AndTheirTypes_ToTheModuleOptions() {
+    public void AddTheGivenProviders_AndTheirTypes_ToTheRegistryOptions() {
         // Arrange
         var providers = new object[] {
             "Hello, World!",
@@ -92,13 +92,13 @@ public class ServiceCollectionExtensions_Should {
         var services = CreateServices(mock);
 
         // Act
-        services.ApplyModules(config => config.WithProviders(providers));
+        services.ApplyRegistries(config => config.WithProviders(providers));
 
         // Assert
         using (new AssertionScope()) {
             mock.OptionsApplied?.Providers
                 .Should().Contain(providers);
-            mock.OptionsApplied?.AllowedModuleArgTypes
+            mock.OptionsApplied?.AllowedRegistryCtorArgTypes
                 .Should().BeEquivalentTo(providerTypes);
         }
     }
@@ -110,7 +110,7 @@ public class ServiceCollectionExtensions_Should {
         var services = CreateServices(mock);
 
         // Act
-        services.ApplyModules(config => config.WithProviders("Hello", "World"));
+        services.ApplyRegistries(config => config.WithProviders("Hello", "World"));
 
         // Assert
         mock.OptionsApplied?.Providers.Should()
@@ -119,43 +119,43 @@ public class ServiceCollectionExtensions_Should {
     }
 
     [Fact]
-    public void AddAnyExplicitlyDefinedModuleTypes_ToTheModuleOptions() {
+    public void AddAnyExplicitlyDefinedRegistryTypes_ToTheRegistryOptions() {
         // Arrange
         var mock = new Dependencies();
         var services = CreateServices(mock);
 
         // Act
-        services.ApplyModules(config => config.UsingModules(typeof(TestModule1)));
+        services.ApplyRegistries(config => config.UsingRegistries(typeof(TestRegistry1)));
 
         // Assert
-        mock.OptionsApplied?.ModuleTypes.Should().Equal(typeof(TestModule1));
+        mock.OptionsApplied?.RegistryTypes.Should().Equal(typeof(TestRegistry1));
     }
 
     [Fact]
-    public void ThrowAnException_IfAddingAnExplicitModuleType_ThatDoesNotImplementIRegistryModule() {
+    public void ThrowAnException_IfAddingAnExplicitRegistryType_ThatDoesNotImplementIRegistryModule() {
         // Arrange
         var services = CreateServices();
 
         // Act
-        var action = () => services.ApplyModules(config
-            => config.UsingModules(typeof(TestService1), typeof(Dependencies)));
+        var action = () => services.ApplyRegistries(config
+            => config.UsingRegistries(typeof(TestService1), typeof(Dependencies)));
 
         // Assert
         action.Should().Throw<InvalidOperationException>()
-            .Which.Message.Should().Be("The following module types do not implement IRegistryModule: TestService1, Dependencies");
+            .Which.Message.Should().Be("The following registry types do not implement IRegistryModule: TestService1, Dependencies");
     }
 
     [Theory,
         InlineData(true),
         InlineData(false)]
-    public void AllowForSettingTheEnvironment_InTheModuleOptions(bool setThroughProviderExtension) {
+    public void AllowForSettingTheEnvironment_InTheRegistryOptions(bool setThroughProviderExtension) {
         // Arrange
         var mock = new Dependencies();
         var services = CreateServices(mock);
         var expectedEnv = new TestEnvironment();
 
         // Act
-        services.ApplyModules(config => {
+        services.ApplyRegistries(config => {
             if (setThroughProviderExtension) {
                 config.WithProviders(expectedEnv);
             } else {
@@ -167,7 +167,7 @@ public class ServiceCollectionExtensions_Should {
         using (new AssertionScope()) {
             mock.OptionsApplied?.Environment.Should().BeSameAs(expectedEnv);
             mock.OptionsApplied?.Providers.Should().Contain(expectedEnv);
-            mock.OptionsApplied?.AllowedModuleArgTypes.Should()
+            mock.OptionsApplied?.AllowedRegistryCtorArgTypes.Should()
                 .Contain(typeof(IHostEnvironment))
                 .And.Contain(expectedEnv.GetType());
         }
@@ -182,7 +182,7 @@ public class ServiceCollectionExtensions_Should {
         var expectedEnv = new TestOtherEnvironment();
 
         // Act
-        services.ApplyModules(config
+        services.ApplyRegistries(config
             => config.WithEnvironment(firstEnv)
                 .WithEnvironment(expectedEnv));
 
@@ -191,7 +191,7 @@ public class ServiceCollectionExtensions_Should {
             mock.OptionsApplied?.Environment.Should().BeSameAs(expectedEnv);
             mock.OptionsApplied?.Providers.Should().Contain(expectedEnv)
                 .And.NotContain(firstEnv);
-            mock.OptionsApplied?.AllowedModuleArgTypes.Should()
+            mock.OptionsApplied?.AllowedRegistryCtorArgTypes.Should()
                 .Contain(typeof(IHostEnvironment))
                 .And.Contain(expectedEnv.GetType())
                 .And.NotContain(firstEnv.GetType());
@@ -205,7 +205,7 @@ public class ServiceCollectionExtensions_Should {
         var services = CreateServices(mock);
 
         // Act
-        var action = () => services.ApplyModules(config => config.WithEnvironment(new TestService1()));
+        var action = () => services.ApplyRegistries(config => config.WithEnvironment(new TestService1()));
 
         // Assert
         action.Should().Throw<InvalidOperationException>()
@@ -215,14 +215,14 @@ public class ServiceCollectionExtensions_Should {
     [Theory,
         InlineData(true),
         InlineData(false)]
-    public void AllowForSettingTheConfiguration_InTheModuleOptions(bool setThroughProviderExtension) {
+    public void AllowForSettingTheConfiguration_InTheRegistryOptions(bool setThroughProviderExtension) {
         // Arrange
         var mock = new Dependencies();
         var services = CreateServices(mock);
         var expectedCfg = new ConfigurationBuilder().Build();
 
         // Act
-        services.ApplyModules(config => {
+        services.ApplyRegistries(config => {
             if (setThroughProviderExtension) {
                 config.WithProviders(expectedCfg);
             } else {
@@ -234,7 +234,7 @@ public class ServiceCollectionExtensions_Should {
         using (new AssertionScope()) {
             mock.OptionsApplied?.Configuration.Should().BeSameAs(expectedCfg);
             mock.OptionsApplied?.Providers.Should().Contain(expectedCfg);
-            mock.OptionsApplied?.AllowedModuleArgTypes.Should().Contain(typeof(IConfiguration));
+            mock.OptionsApplied?.AllowedRegistryCtorArgTypes.Should().Contain(typeof(IConfiguration));
         }
     }
 
@@ -247,7 +247,7 @@ public class ServiceCollectionExtensions_Should {
         var expectedCfg = new ConfigurationBuilder().Build();
 
         // Act
-        services.ApplyModules(config
+        services.ApplyRegistries(config
             => config.WithConfiguration(firstCfg)
                 .WithConfiguration(expectedCfg));
 
@@ -260,34 +260,34 @@ public class ServiceCollectionExtensions_Should {
     }
 
     [Fact]
-    public void NotCreateOptionsWithModuleTypes_ThatAlsoHaveAnInstanceProvided() {
+    public void NotCreateOptionsWithRegistryTypes_ThatAlsoHaveAnInstanceProvided() {
         // Arrange
-        var module = new TestSamples1.TestRegistry1();
+        var registry = new TestSamples1.TestRegistry1();
         var mock = new Dependencies();
         var services = CreateServices(mock);
 
         // Act
-        services.ApplyModules(config
-            => config.FromAssemblies(module.GetType().Assembly)
-                .UsingModules(module));
+        services.ApplyRegistries(config
+            => config.FromAssemblies(registry.GetType().Assembly)
+                .UsingRegistries(registry));
 
         // Assert
-        mock.OptionsApplied?.ModuleTypes.Should().NotContain(module.GetType());
+        mock.OptionsApplied?.RegistryTypes.Should().NotContain(registry.GetType());
     }
     #endregion
 
     #region Test Helpers
     private IServiceCollection CreateServices(Dependencies? deps = null) {
         var services = new ServiceCollection();
-        InternalServiceProvider.ModuleRunnerTestOverride = deps?.Runner.Object;
+        InternalServiceProvider.RegistryRunnerTestOverride = deps?.Runner.Object;
         return services;
     }
 
-    private static ModuleOptions CreateOptions() => new();
+    private static RegistryOptions CreateOptions() => new();
     #endregion
 
     #region Test Classes
-    private class TestModule1 : AbstractRegistryModule {
+    private class TestRegistry1 : AbstractRegistryModule {
         public IServiceProvider? ServiceProvider { get; private set; }
         public override void ConfigureServices(IServiceCollection services)
             => ServiceProvider = services.BuildServiceProvider();
@@ -310,8 +310,8 @@ public class ServiceCollectionExtensions_Should {
     }
 
     private class Dependencies {
-        public Mock<IModuleRunner> Runner { get; }
-        public ModuleOptions? OptionsApplied { get; private set; }
+        public Mock<IRegistryRunner> Runner { get; }
+        public RegistryOptions? OptionsApplied { get; private set; }
 
         public Dependencies() {
             Runner = new();
@@ -319,9 +319,9 @@ public class ServiceCollectionExtensions_Should {
             SetupApplyRegistries(null);
         }
 
-        public void SetupApplyRegistries(Action<IServiceCollection, ModuleOptions>? callback)
-            => Runner.Setup(m => m.ApplyRegistries(It.IsAny<IServiceCollection>(), It.IsAny<ModuleOptions>()))
-                .Callback<IServiceCollection, ModuleOptions>((svc, options) => {
+        public void SetupApplyRegistries(Action<IServiceCollection, RegistryOptions>? callback)
+            => Runner.Setup(m => m.ApplyRegistries(It.IsAny<IServiceCollection>(), It.IsAny<RegistryOptions>()))
+                .Callback<IServiceCollection, RegistryOptions>((svc, options) => {
                     OptionsApplied = options;
                     callback?.Invoke(svc, options);
                 });

@@ -6,19 +6,19 @@ using FluentAssertions.Execution;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
-namespace ServiceModules.Internal.Tests;
-public class ModuleActivator_Should {
+namespace ServiceRegistryModules.Internal.Tests;
+public class RegistryActivator_Should {
     #region Tests
     [Fact]
-    public void BeAbleToActivateAModule_WhenAllRequiredParametersSatisfied() {
+    public void BeAbleToActivateARegistry_WhenAllRequiredParametersSatisfied() {
         // Arrange
         var service = CreateService();
         var options = CreateOptions(
-            moduleTypes: new[] {
-                typeof(ModuleWithNoConstructor),
-                typeof(ModuleWithTestService),
-                typeof(ModuleWithDerivedTestService),
-                typeof(InternalModule)
+            registryTypes: new[] {
+                typeof(RegistryWithNoConstructor),
+                typeof(RegistryWithTestService),
+                typeof(RegistryWithDerivedTestService),
+                typeof(InternalRegistry)
             },
             providers: new[] {
                 new TestDerivedImplementation()
@@ -26,14 +26,14 @@ public class ModuleActivator_Should {
         );
 
         // Act
-        var moduleTypesCreated = service.InstantiateModules(options).Select(m => m.GetType());
+        var registryTypesCreated = service.InstantiateRegistries(options).Select(m => m.GetType());
 
         // Assert
-        Assert.Equal(options.ModuleTypes, moduleTypesCreated);
+        Assert.Equal(options.RegistryTypes, registryTypesCreated);
     }
 
     [Fact]
-    public void PassProviders_ToModuleWhenInstantiating() {
+    public void PassProviders_ToRegistryWhenInstantiating() {
         // Arrange
         var stringProvider = "some-string";
         var boolProvider = true;
@@ -41,73 +41,73 @@ public class ModuleActivator_Should {
 
         var service = CreateService();
         var options = CreateOptions(
-            moduleTypes: new[] { typeof(ModuleWithMultipleParameters) },
+            registryTypes: new[] { typeof(RegistryWithMultipleParameters) },
             providers: new object[] { stringProvider, boolProvider, numProvider }
         );
 
         // Act
-        var module = (ModuleWithMultipleParameters)service.InstantiateModules(options).Single();
+        var registry = (RegistryWithMultipleParameters)service.InstantiateRegistries(options).Single();
 
         // Assert
         Assert.Equal(
             new object[] { stringProvider, numProvider, boolProvider },
-            new object[] { module.Param1, module.Param2, module.Param3 }
+            new object[] { registry.Param1, registry.Param2, registry.Param3 }
         );
     }
 
     [Fact]
-    public void NotCreateNonPublicModules_WhenOptionsSpecifyPublicOnly() {
+    public void NotCreateNonPublicRegistries_WhenOptionsSpecifyPublicOnly() {
         // Arrange
         var options = CreateOptions(
             publicOnly: true,
-            moduleTypes: new[] {
-                typeof(ModuleWithNoConstructor),
-                typeof(InternalModule)
+            registryTypes: new[] {
+                typeof(RegistryWithNoConstructor),
+                typeof(InternalRegistry)
             }
         );
         var service = CreateService();
 
         // Act
-        var createdModules = service.InstantiateModules(options).Select(m => m.GetType());
+        var createdRegistries = service.InstantiateRegistries(options).Select(m => m.GetType());
 
         // Assert
         Assert.Equal(
-            new[] { typeof(ModuleWithNoConstructor) },
-            createdModules
+            new[] { typeof(RegistryWithNoConstructor) },
+            createdRegistries
         );
     }
 
     [Theory,
         InlineData(true),
         InlineData(false)]
-    public void ReturnAnEmptySetOfModules_IfNoModuleTypesGivenInTheOptions(bool publicOnly) {
+    public void ReturnAnEmptySetOfRegistries_IfNoRegistryTypesGivenInTheOptions(bool publicOnly) {
         // Arrange
         var options = CreateOptions(
             publicOnly: publicOnly,
-            moduleTypes: publicOnly ? new[] { typeof(InternalModule) } : Array.Empty<Type>());
+            registryTypes: publicOnly ? new[] { typeof(InternalRegistry) } : Array.Empty<Type>());
         var service = CreateService();
 
         // Act
-        var modules = service.InstantiateModules(options);
+        var registries = service.InstantiateRegistries(options);
 
         // Assert
-        Assert.False(modules.Any());
+        Assert.False(registries.Any());
     }
 
     [Fact]
     public void ThrowInvalidOperationException_WhenNoSuitableConstructorFound_AndListAllowedParams() {
         // Arrange
         var options = CreateOptions(
-            moduleTypes: new[] { typeof(ModuleWithMultipleParameters) },
+            registryTypes: new[] { typeof(RegistryWithMultipleParameters) },
             providers: new object[] { "some-string-provider", true }
         );
         var service = CreateService();
 
-        var expectedMsg = $"Unable to activate {nameof(IRegistryModule)} of type '{nameof(ModuleWithMultipleParameters)}' -- no suitable constructor found. " +
+        var expectedMsg = $"Unable to activate {nameof(IRegistryModule)} of type '{nameof(RegistryWithMultipleParameters)}' -- no suitable constructor found. " +
             $"Allowable constructor parameters are: {typeof(string)}, {typeof(bool)}";
 
         // Act
-        void ShouldThrow() => service.InstantiateModules(options);
+        void ShouldThrow() => service.InstantiateRegistries(options);
 
         // Assert
         var ex = Assert.Throws<InvalidOperationException>(ShouldThrow);
@@ -115,36 +115,36 @@ public class ModuleActivator_Should {
     }
 
     [Fact]
-    public void ReturnModuleInstances_DefinedInTheOptions_AlongWithTheCreatedInstances() {
+    public void ReturnRegistryInstances_DefinedInTheOptions_AlongWithTheCreatedInstances() {
         // Arrange
-        var options = CreateOptions(instances: new[] { new ModuleWithNoConstructor() }, moduleTypes: new[] { typeof(InternalModule) });
+        var options = CreateOptions(instances: new[] { new RegistryWithNoConstructor() }, registryTypes: new[] { typeof(InternalRegistry) });
         var service = CreateService();
 
         // Act
-        var modules = service.InstantiateModules(options);
+        var registries = service.InstantiateRegistries(options);
 
         // Assert
         using (new AssertionScope()) {
-            modules.Should().Contain(options.Modules.Single())
+            registries.Should().Contain(options.Registries.Single())
                 .And.HaveCount(2);
-            modules.Select(m => m.GetType()).Should().Contain(typeof(InternalModule));
+            registries.Select(m => m.GetType()).Should().Contain(typeof(InternalRegistry));
         }
     }
     #endregion
 
     #region Test Helpers
-    private static IModuleActivator CreateService() => new ModuleActivator();
+    private static IRegistryActivator CreateService() => new RegistryActivator();
 
-    private static ModuleOptions CreateOptions(IEnumerable<IRegistryModule>? instances = null, IEnumerable<Type>? moduleTypes = null, IEnumerable<object>? providers = null, bool? publicOnly = null) {
-        var options = new ModuleOptions();
+    private static RegistryOptions CreateOptions(IEnumerable<IRegistryModule>? instances = null, IEnumerable<Type>? registryTypes = null, IEnumerable<object>? providers = null, bool? publicOnly = null) {
+        var options = new RegistryOptions();
 
-        if (moduleTypes is not null) {
-            options.ModuleTypes.AddRange(moduleTypes);
+        if (registryTypes is not null) {
+            options.RegistryTypes.AddRange(registryTypes);
         }
 
         if (providers is not null) {
             options.Providers.AddRange(providers);
-            options.AllowedModuleArgTypes.AddRange(options.Providers.Select(p => p.GetType()));
+            options.AllowedRegistryCtorArgTypes.AddRange(options.Providers.Select(p => p.GetType()));
         }
 
         if (publicOnly is not null) {
@@ -152,7 +152,7 @@ public class ModuleActivator_Should {
         }
 
         if (instances is not null) {
-            options.Modules = instances.ToList();
+            options.Registries = instances.ToList();
         }
 
         return options;
@@ -160,30 +160,30 @@ public class ModuleActivator_Should {
     #endregion
 
     #region Test Classes
-    public class ModuleWithNoConstructor : AbstractRegistryModule {
+    public class RegistryWithNoConstructor : AbstractRegistryModule {
         public override void ConfigureServices(IServiceCollection services) => throw new System.NotImplementedException();
     }
 
-    internal class InternalModule : AbstractRegistryModule {
+    internal class InternalRegistry : AbstractRegistryModule {
         public override void ConfigureServices(IServiceCollection services) => throw new System.NotImplementedException();
     }
 
-    public class ModuleWithTestService : AbstractRegistryModule {
-        public ModuleWithTestService(ITestInterface _) {
+    public class RegistryWithTestService : AbstractRegistryModule {
+        public RegistryWithTestService(ITestInterface _) {
 
         }
         public override void ConfigureServices(IServiceCollection services) => throw new System.NotImplementedException();
     }
 
-    public class ModuleWithDerivedTestService : AbstractRegistryModule {
-        public ModuleWithDerivedTestService(IDerivedTestInterface _) {
+    public class RegistryWithDerivedTestService : AbstractRegistryModule {
+        public RegistryWithDerivedTestService(IDerivedTestInterface _) {
 
         }
         public override void ConfigureServices(IServiceCollection services) => throw new System.NotImplementedException();
     }
 
-    public class ModuleWithMultipleParameters : AbstractRegistryModule {
-        public ModuleWithMultipleParameters(string param1, int param2, bool param3) {
+    public class RegistryWithMultipleParameters : AbstractRegistryModule {
+        public RegistryWithMultipleParameters(string param1, int param2, bool param3) {
             Param1 = param1;
             Param2 = param2;
             Param3 = param3;

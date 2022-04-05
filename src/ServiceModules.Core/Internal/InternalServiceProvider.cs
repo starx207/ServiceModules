@@ -2,16 +2,16 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
-namespace ServiceModules.Internal;
+namespace ServiceRegistryModules.Internal;
 internal static class InternalServiceProvider {
-    internal static IModuleRunner? ModuleRunnerTestOverride = null;
-    private static readonly IServiceProvider _moduleRunnerServices = new ServiceCollection() {
-        ServiceDescriptor.Transient<IModuleRunner, ModuleRunner>(),
-        ServiceDescriptor.Transient<IModuleActivator, ModuleActivator>(),
-        ServiceDescriptor.Transient<IModuleConfigApplicator, ModuleConfigApplicator>(),
-        ServiceDescriptor.Transient<IModuleConfigLoader, ModuleConfigLoader>()
+    internal static IRegistryRunner? RegistryRunnerTestOverride = null;
+    private static readonly IServiceProvider _registryRunnerServices = new ServiceCollection() {
+        ServiceDescriptor.Transient<IRegistryRunner, RegistryRunner>(),
+        ServiceDescriptor.Transient<IRegistryActivator, RegistryActivator>(),
+        ServiceDescriptor.Transient<IRegistryConfigApplicator, RegistryConfigApplicator>(),
+        ServiceDescriptor.Transient<IRegistryConfigLoader, RegistryConfigLoader>()
     }.BuildServiceProvider();
 
-    public static IModuleRunner GetModuleRunner(IServiceCollection intermediateServices)
-        => ModuleRunnerTestOverride ?? _moduleRunnerServices.GetRequiredService<IModuleRunner>();
+    public static IRegistryRunner GetRegistryRunner()
+        => RegistryRunnerTestOverride ?? _registryRunnerServices.GetRequiredService<IRegistryRunner>();
 }

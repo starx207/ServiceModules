@@ -9,18 +9,18 @@ using Moq;
 using Moq.Language.Flow;
 using Xunit;
 
-namespace ServiceModules.Internal.Tests;
-public class ModuleRunner_Should {
+namespace ServiceRegistryModules.Internal.Tests;
+public class RegistryRunner_Should {
     #region Tests
     [Fact]
-    public void UseTheGivenOptions_ToInstantiateTheModules() {
+    public void UseTheGivenOptions_ToInstantiateTheRegistries() {
         // Arrange
         var options = CreateOptions();
         var mock = new Dependencies();
         var service = CreateService(mock);
 
-        ModuleOptions? actualOptions = null;
-        mock.SetupInstantiateModules(callback: opt => actualOptions = opt);
+        RegistryOptions? actualOptions = null;
+        mock.SetupInstantiateRegistries(callback: opt => actualOptions = opt);
 
         // Act
         service.ApplyRegistries(CreateServiceCollection(), options);
@@ -30,71 +30,71 @@ public class ModuleRunner_Should {
     }
 
     [Fact]
-    public void PassTheGivenServices_ToEachModule() {
+    public void PassTheGivenServices_ToEachRegistry() {
         // Arrange
         var expectedServices = CreateServiceCollection();
 
-        var modules = new[] {
-            CreateMockModule(),
-            CreateMockModule(),
-            CreateMockModule()
+        var registries = new[] {
+            CreateMockRegistry(),
+            CreateMockRegistry(),
+            CreateMockRegistry()
         };
 
         var mock = new Dependencies();
         var service = CreateService(mock);
 
-        mock.SetupInstantiateModules(returnVal: modules.Select(m => m.Object));
+        mock.SetupInstantiateRegistries(returnVal: registries.Select(m => m.Object));
 
         // Act
         service.ApplyRegistries(expectedServices, CreateOptions());
 
         // Assert
-        foreach (var module in modules) {
-            module.Verify(m => m.ConfigureServices(expectedServices), Times.Once());
+        foreach (var registry in registries) {
+            registry.Verify(m => m.ConfigureServices(expectedServices), Times.Once());
         }
     }
 
     [Fact]
-    public void ConfigureEachModule_BeforeApplyingItsServiceConfiguration() {
+    public void ConfigureEachRegistry_BeforeApplyingItsServiceConfiguration() {
         // Arrange
-        var module = CreateMockModule();
+        var registry = CreateMockRegistry();
         var mock = new Dependencies();
         var service = CreateService(mock);
 
-        module.Setup(m => m.ConfigureServices(It.IsAny<IServiceCollection>()))
+        registry.Setup(m => m.ConfigureServices(It.IsAny<IServiceCollection>()))
             .Callback<IServiceCollection>(_ => {
-                mock.Applicator.Verify(m => m.ApplyModuleConfiguration(module.Object),
+                mock.Applicator.Verify(m => m.ApplyRegistryConfiguration(registry.Object),
                     Times.Once(), "Configuration not applied");
             }).Verifiable("Services not configured");
 
-        mock.SetupInstantiateModules(returnVal: new[] { module.Object });
+        mock.SetupInstantiateRegistries(returnVal: new[] { registry.Object });
 
         // Act
         service.ApplyRegistries(CreateServiceCollection(), CreateOptions());
 
         // Assert
-        module.Verify();
+        registry.Verify();
     }
 
     [Fact]
-    public void UseTheGivenOptions_ToInitializeTheApplicatorOnce_BeforeApplyingToAnyModules() {
+    public void UseTheGivenOptions_ToInitializeTheApplicatorOnce_BeforeApplyingToAnyRegistries() {
         // Arrange
-        var modules = new[] {
-            CreateMockModule(),
-            CreateMockModule(),
-            CreateMockModule()
+        var registries = new[] {
+            CreateMockRegistry(),
+            CreateMockRegistry(),
+            CreateMockRegistry()
         };
         var options = CreateOptions();
         var mock = new Dependencies();
         var service = CreateService(mock);
 
-        mock.SetupInstantiateModules(returnVal: modules.Select(m => m.Object));
+        mock.SetupInstantiateRegistries(returnVal: registries.Select(m => m.Object));
 
-        ModuleOptions? actualOptions = null;
+        RegistryOptions? actualOptions = null;
         mock.SetupInitializeFrom(opt => {
             actualOptions = opt;
-            foreach (var module in modules) {
-                module.Verify(m => m.ConfigureServices(It.IsAny<IServiceCollection>()),
+            foreach (var registry in registries) {
+                registry.Verify(m => m.ConfigureServices(It.IsAny<IServiceCollection>()),
                     Times.Never(), "Config not initialized before configuring services");
             }
         });
@@ -104,7 +104,7 @@ public class ModuleRunner_Should {
 
         // Assert
         actualOptions.Should().BeSameAs(options);
-        mock.Applicator.Verify(m => m.InitializeFrom(It.IsAny<ModuleOptions>()), Times.Once());
+        mock.Applicator.Verify(m => m.InitializeFrom(It.IsAny<RegistryOptions>()), Times.Once());
     }
 
     [Theory,
@@ -112,25 +112,25 @@ public class ModuleRunner_Should {
         MemberData(nameof(EnvironmentMatchInput), "production"),
         MemberData(nameof(EnvironmentMatchInput), null),
         MemberData(nameof(EnvironmentMatchInput), "staging")]
-    public void NotApplyConfigurations_OrConfigureServices_ForModulesThatDoNotMatchTheCurrentEnvironment(Mock<IRegistryModule>[] modules, string? environment, int[] expectedIndicies) {
+    public void NotApplyConfigurations_OrConfigureServices_ForRegistriesThatDoNotMatchTheCurrentEnvironment(Mock<IRegistryModule>[] registries, string? environment, int[] expectedIndicies) {
         // Arrange
         var hostEnv = environment == null ? null : new TestEnvironment(environment);
         var options = CreateOptions(environment: hostEnv);
         var mock = new Dependencies();
         var service = CreateService(mock);
 
-        mock.SetupInstantiateModules(returnVal: modules.Select(m => m.Object));
+        mock.SetupInstantiateRegistries(returnVal: registries.Select(m => m.Object));
 
         // Act
         service.ApplyRegistries(CreateServiceCollection(), options);
 
         // Assert
-        for (var i = 0; i < modules.Length; i++) {
+        for (var i = 0; i < registries.Length; i++) {
             var times = expectedIndicies.Contains(i) ? Times.Once() : Times.Never();
-            modules[i].Verify(m => m.ConfigureServices(It.IsAny<IServiceCollection>()),
-                times, $"Module {i} ConfigureServices");
-            mock.Applicator.Verify(m => m.ApplyModuleConfiguration(modules[i].Object),
-                times, $"Module {i} ApplyConfiguration");
+            registries[i].Verify(m => m.ConfigureServices(It.IsAny<IServiceCollection>()),
+                times, $"Registry {i} ConfigureServices");
+            mock.Applicator.Verify(m => m.ApplyRegistryConfiguration(registries[i].Object),
+                times, $"Registry {i} ApplyConfiguration");
         }
     }
 
@@ -152,57 +152,57 @@ public class ModuleRunner_Should {
 
     #region Test Inputs
     private static IEnumerable<object[]> EnvironmentMatchInput(string? actualEnvironment) {
-        var modules = new[] {
-            CreateMockModule("Development"),
-            CreateMockModule("production"),
-            CreateMockModule("development", "Production"),
-            CreateMockModule()
+        var registries = new[] {
+            CreateMockRegistry("Development"),
+            CreateMockRegistry("production"),
+            CreateMockRegistry("development", "Production"),
+            CreateMockRegistry()
         };
-        var expectedModuleIndicies = new List<int>();
+        var expectedRegistryIndicies = new List<int>();
 
-        for (var i = 0; i < modules.Length; i++) {
+        for (var i = 0; i < registries.Length; i++) {
             if (actualEnvironment is null) {
-                expectedModuleIndicies.Add(i);
+                expectedRegistryIndicies.Add(i);
                 continue;
             }
-            if (modules[i].Object.TargetEnvironments.Contains(actualEnvironment, StringComparer.OrdinalIgnoreCase)) {
-                expectedModuleIndicies.Add(i);
+            if (registries[i].Object.TargetEnvironments.Contains(actualEnvironment, StringComparer.OrdinalIgnoreCase)) {
+                expectedRegistryIndicies.Add(i);
                 continue;
             }
-            if (modules[i].Object.TargetEnvironments.Count == 0) {
-                expectedModuleIndicies.Add(i);
+            if (registries[i].Object.TargetEnvironments.Count == 0) {
+                expectedRegistryIndicies.Add(i);
             }
         }
 
         return new object[][] {
             new object[] {
-                modules,
+                registries,
                 actualEnvironment!,
-                expectedModuleIndicies.ToArray()
+                expectedRegistryIndicies.ToArray()
             }
         };
     }
     #endregion
 
     #region Test Helpers
-    private static IModuleRunner CreateService(Dependencies? deps = null) {
+    private static IRegistryRunner CreateService(Dependencies? deps = null) {
         deps ??= new();
         var services = new ServiceCollection();
         services.AddSingleton(deps.Activator.Object);
         services.AddSingleton(deps.Applicator.Object);
-        services.AddSingleton<IModuleRunner, ModuleRunner>();
+        services.AddSingleton<IRegistryRunner, RegistryRunner>();
 
-        return services.BuildServiceProvider().GetRequiredService<IModuleRunner>();
+        return services.BuildServiceProvider().GetRequiredService<IRegistryRunner>();
     }
 
-    private static Mock<IRegistryModule> CreateMockModule(params string[] targetEnvironments) {
+    private static Mock<IRegistryModule> CreateMockRegistry(params string[] targetEnvironments) {
         var mock = new Mock<IRegistryModule>();
         mock.SetupGet(m => m.TargetEnvironments).Returns(targetEnvironments);
 
         return mock;
     }
 
-    private static ModuleOptions CreateOptions(object? environment = null)
+    private static RegistryOptions CreateOptions(object? environment = null)
         => new() { Environment = environment };
 
     private static IServiceCollection CreateServiceCollection() => new ServiceCollection();
@@ -210,36 +210,36 @@ public class ModuleRunner_Should {
 
     #region Test Classes
     private class Dependencies {
-        public Mock<IModuleActivator> Activator { get; }
-        public Mock<IModuleConfigApplicator> Applicator { get; }
+        public Mock<IRegistryActivator> Activator { get; }
+        public Mock<IRegistryConfigApplicator> Applicator { get; }
 
         public Dependencies() {
             Activator = new();
             Applicator = new();
 
-            SetupInstantiateModules();
+            SetupInstantiateRegistries();
             SetupInitializeFrom(null);
             SetupApplyConfiguration(null);
         }
 
-        public void SetupInstantiateModules(Action<ModuleOptions>? callback = null, IEnumerable<IRegistryModule>? returnVal = null) {
-            var setup = Activator.Setup(m => m.InstantiateModules(It.IsAny<ModuleOptions>()));
-            IReturnsThrows<IModuleActivator, IEnumerable<IRegistryModule>> returnsThrows = setup;
+        public void SetupInstantiateRegistries(Action<RegistryOptions>? callback = null, IEnumerable<IRegistryModule>? returnVal = null) {
+            var setup = Activator.Setup(m => m.InstantiateRegistries(It.IsAny<RegistryOptions>()));
+            IReturnsThrows<IRegistryActivator, IEnumerable<IRegistryModule>> returnsThrows = setup;
             if (callback is not null) {
                 returnsThrows = setup.Callback(callback);
             }
             returnsThrows.Returns(returnVal ?? Enumerable.Empty<IRegistryModule>());
         }
 
-        public void SetupInitializeFrom(Action<ModuleOptions>? callback) {
-            var setup = Applicator.Setup(m => m.InitializeFrom(It.IsAny<ModuleOptions>()));
+        public void SetupInitializeFrom(Action<RegistryOptions>? callback) {
+            var setup = Applicator.Setup(m => m.InitializeFrom(It.IsAny<RegistryOptions>()));
             if (callback is not null) {
                 setup.Callback(callback);
             }
         }
 
         public void SetupApplyConfiguration(Action<IRegistryModule>? callback) {
-            var setup = Applicator.Setup(m => m.ApplyModuleConfiguration(It.IsAny<IRegistryModule>()));
+            var setup = Applicator.Setup(m => m.ApplyRegistryConfiguration(It.IsAny<IRegistryModule>()));
             if (callback is not null) {
                 setup.Callback(callback);
             }

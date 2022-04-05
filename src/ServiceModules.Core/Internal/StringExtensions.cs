@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Linq;
 
-namespace ServiceModules.Internal;
+namespace ServiceRegistryModules.Internal;
 internal static class StringExtensions {
     public static bool MatchWildcard(this string value, string check, char wildcard, StringComparison comparison = StringComparison.Ordinal) {
         var trimmedCheck = check.Trim(wildcard);

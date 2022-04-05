@@ -6,8 +6,8 @@ using FluentAssertions.Execution;
 using Microsoft.Extensions.Configuration;
 using Xunit;
 
-namespace ServiceModules.Internal.Tests;
-public class ModuleConfigLoader_Should {
+namespace ServiceRegistryModules.Internal.Tests;
+public class RegistryConfigLoader_Should {
     #region Tests
     [Fact]
     public void ReturnNull_WhenNoConfigurationDefined() {
@@ -38,28 +38,28 @@ public class ModuleConfigLoader_Should {
         using (new AssertionScope()) {
             var ex = action.Should().Throw<ArgumentException>();
             ex.Which.ParamName.Should().Be("options");
-            ex.Which.Message.Should().StartWith($"'{nameof(options.ModuleConfigSectionKey)}' cannot be null or whitespace.");
+            ex.Which.Message.Should().StartWith($"'{nameof(options.RegistryConfigSectionKey)}' cannot be null or whitespace.");
         }
     }
 
-    [Theory, InlineData(true)]//, InlineData(false)]
+    [Theory, InlineData(true), InlineData(false)]
     public void CreateTheCorrectEntries_ForTheConfigurationSection(bool changeCaseBeforeFinalCheck) {
         // Arrange
-        var key = "my_module_config";
-        var expectedConfig = new ModuleConfiguration();
-        expectedConfig.AddPropertyTo("module1", "prop1", "val1");
-        expectedConfig.AddPropertyTo("module1", "prop2", "val2");
-        expectedConfig.AddPropertyTo("module2", "prop1", "val1");
-        expectedConfig.AddPropertyTo("module3", "prop1", "val1");
-        expectedConfig.AddPropertyTo("module3", "prop2", "val2");
-        expectedConfig.AddPropertyTo("module3", "prop3", "val3");
+        var key = "my_registry_config";
+        var expectedConfig = new RegistryConfiguration();
+        expectedConfig.AddPropertyTo("registry1", "prop1", "val1");
+        expectedConfig.AddPropertyTo("registry1", "prop2", "val2");
+        expectedConfig.AddPropertyTo("registry2", "prop1", "val1");
+        expectedConfig.AddPropertyTo("registry3", "prop1", "val1");
+        expectedConfig.AddPropertyTo("registry3", "prop2", "val2");
+        expectedConfig.AddPropertyTo("registry3", "prop3", "val3");
 
         string KeyTransform(string input) => changeCaseBeforeFinalCheck ? input.ToUpper() : input;
 
         var configEntries = expectedConfig
-            .SelectMany(moduleEntry => moduleEntry.Value
+            .SelectMany(registryEntry => registryEntry.Value
                 .Select(propEntry => KeyValuePair.Create(
-                    KeyTransform($"{key}:{moduleEntry.Key}:{propEntry.Key}"),
+                    KeyTransform($"{key}:{registryEntry.Key}:{propEntry.Key}"),
                     propEntry.Value.Value?.ToString()
                 )))
             .ToArray();
@@ -70,7 +70,7 @@ public class ModuleConfigLoader_Should {
         // Act
         var actualConfig = service.LoadFrom(options);
         // TODO: Is there a way to tell fluentvalidation to ignore case so I don't have to do this?
-        var configLowered = new ModuleConfiguration();
+        var configLowered = new RegistryConfiguration();
         foreach (var config in actualConfig!) {
             foreach (var prop in config.Value) {
                 configLowered.AddPropertyTo(config.Key.ToLower(), prop.Key.ToLower(), prop.Value.Value?.ToString()!);
@@ -84,25 +84,25 @@ public class ModuleConfigLoader_Should {
     [Fact]
     public void CreateTheConfiguration_UsingAMixOfFull_AndSimpleConfig() {
         // Arrange
-        var key = "my_module_config";
-        var expectedConfig = new ModuleConfiguration();
-        expectedConfig.AddPropertyTo("module1", "prop1", CreatePropCfg(value: "val1"));
-        expectedConfig.AddPropertyTo("module1", "prop2", "val2");
-        expectedConfig.AddPropertyTo("module1", "prop3", CreatePropCfg(value: "val2", suppressErrors: true));
+        var key = "my_registry_config";
+        var expectedConfig = new RegistryConfiguration();
+        expectedConfig.AddPropertyTo("registry1", "prop1", CreatePropCfg(value: "val1"));
+        expectedConfig.AddPropertyTo("registry1", "prop2", "val2");
+        expectedConfig.AddPropertyTo("registry1", "prop3", CreatePropCfg(value: "val2", suppressErrors: true));
 
         var configEntries = expectedConfig
-            .SelectMany(moduleEntry => moduleEntry.Value
+            .SelectMany(registryEntry => registryEntry.Value
                 .Select(propEntry => KeyValuePair.Create(
-                    $"{key}:{moduleEntry.Key}:{propEntry.Key}" + (propEntry.Key == "prop2" ? "" : $":{nameof(propEntry.Value.Value)}"),
+                    $"{key}:{registryEntry.Key}:{propEntry.Key}" + (propEntry.Key == "prop2" ? "" : $":{nameof(propEntry.Value.Value)}"),
                     propEntry.Value.Value?.ToString()
                 )))
             .ToList();
 
         // Add the error suppression entries
-        configEntries.AddRange(expectedConfig.SelectMany(moduleEntry => moduleEntry.Value
+        configEntries.AddRange(expectedConfig.SelectMany(registryEntry => registryEntry.Value
             .Where(propEntry => propEntry.Key != "prop2")
             .Select(propEntry => KeyValuePair.Create(
-                $"{key}:{moduleEntry.Key}:{propEntry.Key}:{nameof(propEntry.Value.SuppressErrors)}",
+                $"{key}:{registryEntry.Key}:{propEntry.Key}:{nameof(propEntry.Value.SuppressErrors)}",
                 propEntry.Value.SuppressErrors.ToString())))!);
 
         var options = CreateOptions(builder => builder.AddInMemoryCollection(configEntries), sectionKey: key);
@@ -118,19 +118,19 @@ public class ModuleConfigLoader_Should {
     [Fact]
     public void NotReturnKeys_FromTheWrongConfigSection() {
         // Arrange
-        var key = "my_module_config";
-        var unexpectedConfig = new ModuleConfiguration();
-        unexpectedConfig.AddPropertyTo("module1", "prop1", "val1");
-        unexpectedConfig.AddPropertyTo("module1", "prop2", "val2");
-        unexpectedConfig.AddPropertyTo("module2", "prop1", "val1");
-        unexpectedConfig.AddPropertyTo("module3", "prop1", "val1");
-        unexpectedConfig.AddPropertyTo("module3", "prop2", "val2");
-        unexpectedConfig.AddPropertyTo("module3", "prop3", "val3");
+        var key = "my_registry_config";
+        var unexpectedConfig = new RegistryConfiguration();
+        unexpectedConfig.AddPropertyTo("registry1", "prop1", "val1");
+        unexpectedConfig.AddPropertyTo("registry1", "prop2", "val2");
+        unexpectedConfig.AddPropertyTo("registry2", "prop1", "val1");
+        unexpectedConfig.AddPropertyTo("registry3", "prop1", "val1");
+        unexpectedConfig.AddPropertyTo("registry3", "prop2", "val2");
+        unexpectedConfig.AddPropertyTo("registry3", "prop3", "val3");
 
         var configEntries = unexpectedConfig
-            .SelectMany(moduleEntry => moduleEntry.Value
+            .SelectMany(registryEntry => registryEntry.Value
                 .Select(propEntry => KeyValuePair.Create(
-                    $"{key}:{moduleEntry.Key}:{propEntry.Key}",
+                    $"{key}:{registryEntry.Key}:{propEntry.Key}",
                     propEntry.Value.Value?.ToString()
                 )))
             .ToArray();
@@ -148,10 +148,10 @@ public class ModuleConfigLoader_Should {
     [Fact]
     public void NotReturnKeys_ThatHaveNoPropertiesDefined() {
         // Arrange
-        var key = "module_config";
+        var key = "registry_config";
 
         var options = CreateOptions(builder => builder.AddInMemoryCollection(new[] {
-            KeyValuePair.Create($"{key}:SomeModule", "no-properties")
+            KeyValuePair.Create($"{key}:SomeRegistry", "no-properties")
         }), sectionKey: key);
         var service = CreateService();
 
@@ -164,10 +164,10 @@ public class ModuleConfigLoader_Should {
     #endregion
 
     #region Test Helpers
-    private static IModuleConfigLoader CreateService() => new ModuleConfigLoader();
-    private static ModuleOptions CreateOptions(Action<ConfigurationBuilder>? config = null, string? sectionKey = "registry_modules", bool nullConfig = false) {
-        var options = new ModuleOptions() {
-            ModuleConfigSectionKey = sectionKey!
+    private static IRegistryConfigLoader CreateService() => new RegistryConfigLoader();
+    private static RegistryOptions CreateOptions(Action<ConfigurationBuilder>? config = null, string? sectionKey = "service_registries", bool nullConfig = false) {
+        var options = new RegistryOptions() {
+            RegistryConfigSectionKey = sectionKey!
         };
         if (!nullConfig) {
             var builder = new ConfigurationBuilder();
@@ -176,7 +176,7 @@ public class ModuleConfigLoader_Should {
         }
         return options;
     }
-    private static ModulePropertyConfig CreatePropCfg(object? value = null, bool suppressErrors = false)
+    private static RegistryPropertyConfig CreatePropCfg(object? value = null, bool suppressErrors = false)
         => new() { Value = value, SuppressErrors = suppressErrors };
     #endregion
 }
