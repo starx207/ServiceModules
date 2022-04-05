@@ -1,3 +1,3 @@
 # ServiceRegistryModules
 ---
-__TODO: provide link to documentation for "ServiceRegistryModules" package which is where I'll put the full implementation details.__
+For more information, check out the [ServiceRegistryModules documentation](https://github.com/starx207/ServiceRegistryModules/blob/master/src/ServiceRegistryModules.Core/README.md#serviceregistrymodules)
