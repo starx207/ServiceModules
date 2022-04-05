@@ -14,11 +14,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\ServiceModules.Core\ServiceModules.Core.csproj" />
+    <ProjectReference Include="..\ServiceRegistryModules.Core\ServiceRegistryModules.Core.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <InternalsVisibleTo Include="ServiceModules.AspNetCore.Tests" />
+    <InternalsVisibleTo Include="ServiceRegistryModules.AspNetCore.Tests" />
     <InternalsVisibleTo Include="DynamicProxyGenAssembly2" />
   </ItemGroup>
   

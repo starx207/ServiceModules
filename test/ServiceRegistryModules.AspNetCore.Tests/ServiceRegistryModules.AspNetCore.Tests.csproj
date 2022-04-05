@@ -2,18 +2,14 @@
 
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
-    <Nullable>enable</Nullable>
-
     <IsPackable>false</IsPackable>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="FluentAssertions" Version="6.5.1" />
-    <PackageReference Include="Microsoft.Extensions.Configuration" Version="6.0.1" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.11.0" />
     <PackageReference Include="Moq" Version="4.17.2" />
     <PackageReference Include="xunit" Version="2.4.1" />
-    <PackageReference Include="xunit.extensibility.core" Version="2.4.1" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.4.3">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
@@ -25,7 +21,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\ServiceModules.Core\ServiceModules.Core.csproj" />
+    <ProjectReference Include="..\..\src\ServiceRegistryModules.AspNetCore\ServiceRegistryModules.AspNetCore.csproj" />
+    <ProjectReference Include="..\SampleProjects\TestSamples1\TestSamples1.csproj" />
+    <ProjectReference Include="..\SampleProjects\TestSamples2\TestSamples2.csproj" />
   </ItemGroup>
 
 </Project>

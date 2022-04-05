@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
@@ -13,6 +13,7 @@
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.11.0" />
     <PackageReference Include="Moq" Version="4.17.2" />
     <PackageReference Include="xunit" Version="2.4.1" />
+    <PackageReference Include="xunit.extensibility.core" Version="2.4.1" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.4.3">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
@@ -24,9 +25,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\ServiceModules.Core\ServiceModules.Core.csproj" />
-    <ProjectReference Include="..\SampleProjects\TestSamples1\TestSamples1.csproj" />
-    <ProjectReference Include="..\SampleProjects\TestSamples2\TestSamples2.csproj" />
+    <ProjectReference Include="..\..\src\ServiceRegistryModules.Core\ServiceRegistryModules.Core.csproj" />
   </ItemGroup>
 
 </Project>

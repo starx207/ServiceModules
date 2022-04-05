@@ -3,17 +3,17 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.1.32228.430
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ServiceModules.Core", "ServiceModules.Core\ServiceModules.Core.csproj", "{729ADC96-D13E-4149-BEFE-43A866121A92}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ServiceRegistryModules.Core", "ServiceRegistryModules.Core\ServiceRegistryModules.Core.csproj", "{729ADC96-D13E-4149-BEFE-43A866121A92}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ServiceModules.AspNetCore", "ServiceModules.AspNetCore\ServiceModules.AspNetCore.csproj", "{521E87F4-4596-431D-86D9-99E2FF4F2699}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ServiceRegistryModules.AspNetCore", "ServiceRegistryModules.AspNetCore\ServiceRegistryModules.AspNetCore.csproj", "{521E87F4-4596-431D-86D9-99E2FF4F2699}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ServiceModules.Abstractions", "ServiceModules.Abstractions\ServiceModules.Abstractions.csproj", "{F273D70A-65C0-4CA2-ADEE-1F3AF73998EB}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ServiceRegistryModules.Abstractions", "ServiceRegistryModules.Abstractions\ServiceRegistryModules.Abstractions.csproj", "{F273D70A-65C0-4CA2-ADEE-1F3AF73998EB}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{B7FC3187-2637-4E70-A3F5-5A72B24A12D8}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ServiceModules.Core.Internal.Tests", "..\test\ServiceModules.Core.Internal.Tests\ServiceModules.Core.Internal.Tests.csproj", "{B8204E7E-F657-469D-BAAA-E7B85E801485}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ServiceRegistryModules.Core.Internal.Tests", "..\test\ServiceRegistryModules.Core.Internal.Tests\ServiceRegistryModules.Core.Internal.Tests.csproj", "{B8204E7E-F657-469D-BAAA-E7B85E801485}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ServiceModules.Core.Tests", "..\test\ServiceModules.Core.Tests\ServiceModules.Core.Tests.csproj", "{E83120C2-2C07-4608-8390-1CB789E365C8}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ServiceRegistryModules.Core.Tests", "..\test\ServiceRegistryModules.Core.Tests\ServiceRegistryModules.Core.Tests.csproj", "{E83120C2-2C07-4608-8390-1CB789E365C8}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SampleProjects", "SampleProjects", "{71AD3E22-C741-440C-BE37-F57637093CAB}"
 EndProject
@@ -21,7 +21,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TestSamples1", "..\test\Sam
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TestSamples2", "..\test\SampleProjects\TestSamples2\TestSamples2.csproj", "{E3585E40-3EFD-4AC8-B921-C2DCA3436491}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ServiceModules.AspNetCore.Tests", "..\test\ServiceModules.AspNetCore.Tests\ServiceModules.AspNetCore.Tests.csproj", "{1B0F0FE5-4D1A-4440-81AD-4FBC94B9AADC}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ServiceRegistryModules.AspNetCore.Tests", "..\test\ServiceRegistryModules.AspNetCore.Tests\ServiceRegistryModules.AspNetCore.Tests.csproj", "{1B0F0FE5-4D1A-4440-81AD-4FBC94B9AADC}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
