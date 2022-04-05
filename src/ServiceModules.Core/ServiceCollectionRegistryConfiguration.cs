@@ -52,7 +52,7 @@ public class ServiceCollectionRegistryConfiguration {
     /// </summary>
     /// <param name="assemblyMarkers">Types defined in the assemblies to scan</param>
     /// <returns></returns>
-    /// <exception cref="ArgumentNullException"></exception>
+    /// <exception cref="ArgumentException"></exception>
     public ServiceCollectionRegistryConfiguration FromAssembliesOf(params Type[] assemblyMarkers)
         => FromAssemblies(assemblyMarkers.Select(marker => marker.Assembly).ToArray());
 
@@ -61,7 +61,7 @@ public class ServiceCollectionRegistryConfiguration {
     /// </summary>
     /// <param name="assemblies">The assemblies to scan</param>
     /// <returns></returns>
-    /// <exception cref="ArgumentNullException"></exception>
+    /// <exception cref="ArgumentException"></exception>
     public ServiceCollectionRegistryConfiguration FromAssemblies(params Assembly[] assemblies) {
         if (assemblies is not { Length: > 0 }) {
             throw new ArgumentException("No assemblies given to scan", nameof(assemblies));
@@ -111,6 +111,7 @@ public class ServiceCollectionRegistryConfiguration {
     /// <param name="registryTypes"></param>
     /// <returns></returns>
     /// <exception cref="ArgumentNullException"></exception>
+    /// <exception cref="InvalidOperationException">When any of the provided <paramref name="registryTypes"/> do not implement <see cref="IRegistryModule"/></exception>
     public ServiceCollectionRegistryConfiguration OfTypes(params Type[] registryTypes) {
         if (registryTypes is null) {
             throw new ArgumentNullException(nameof(registryTypes));

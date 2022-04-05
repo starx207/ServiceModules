@@ -12,8 +12,10 @@ public static class WebApplicationBuilderExtensions {
     /// <param name="assemblies">The assemblies to scan</param>
     /// <returns></returns>
     /// <exception cref="InvalidOperationException">
-    /// When unable to instantiate an <see cref="IRegistryModule"/> implementation.
+    /// When unable to instantiate an <see cref="IRegistryModule"/> implementation
+    /// or when any registry configurations are invalid.
     /// </exception>
+    /// <exception cref="ArgumentException">When registry configuration entry has an invalid value for a property</exception>
     public static void ApplyRegistries(this WebApplicationBuilder builder, params Assembly[] assemblies)
         => builder.ApplyRegistries(config => {
             if (assemblies.Any()) {
@@ -30,8 +32,10 @@ public static class WebApplicationBuilderExtensions {
     /// <param name="registryConfiguration">Configuration for which registries to apply</param>
     /// <returns></returns>
     /// <exception cref="InvalidOperationException">
-    /// When unable to instantiate an <see cref="IRegistryModule"/> implementation.
+    /// When unable to instantiate an <see cref="IRegistryModule"/> implementation
+    /// or when any registry configurations are invalid.
     /// </exception>
+    /// <exception cref="ArgumentException">When registry configuration entry has an invalid value for a property</exception>
     public static void ApplyRegistries(this WebApplicationBuilder builder, Action<WebApplicationRegistryConfiguration> registryConfiguration)
         => builder.ApplyRegistries(registryConfiguration, Assembly.GetCallingAssembly());
 

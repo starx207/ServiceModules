@@ -2,7 +2,6 @@
 using System.Linq;
 using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using ServiceRegistryModules.Internal;
 
 namespace ServiceRegistryModules;
@@ -15,8 +14,10 @@ public static class ServiceCollectionExtensions {
     /// <param name="assemblies">The assemblies to scan</param>
     /// <returns></returns>
     /// <exception cref="InvalidOperationException">
-    /// When unable to instantiate an <see cref="IRegistryModule"/> implementation.
+    /// When unable to instantiate an <see cref="IRegistryModule"/> implementation
+    /// or when any registry configurations are invalid.
     /// </exception>
+    /// <exception cref="ArgumentException">When registry configuration entry has an invalid value for a property</exception>
     public static IServiceCollection ApplyRegistries(this IServiceCollection services, params Assembly[] assemblies)
         => services.ApplyRegistries(config => {
             if (assemblies.Any()) {
@@ -33,9 +34,10 @@ public static class ServiceCollectionExtensions {
     /// <param name="registryConfiguration">Configuration for which registries to apply</param>
     /// <returns></returns>
     /// <exception cref="InvalidOperationException">
-    /// When the provided host environment does not implement <see cref="IHostEnvironment"/>,
-    /// or when unable to instantiate an <see cref="IRegistryModule"/> implementation.
+    /// When unable to instantiate an <see cref="IRegistryModule"/> implementation
+    /// or when any registry configurations are invalid.
     /// </exception>
+    /// <exception cref="ArgumentException">When registry configuration entry has an invalid value for a property</exception>
     public static IServiceCollection ApplyRegistries(this IServiceCollection services, Action<ServiceCollectionRegistryConfiguration> registryConfiguration)
         => services.ApplyRegistries(registryConfiguration, Assembly.GetCallingAssembly());
 
