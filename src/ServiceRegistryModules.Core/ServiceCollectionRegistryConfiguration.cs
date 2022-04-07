@@ -96,7 +96,7 @@ public class ServiceCollectionRegistryConfiguration {
             if (_hostEnvironmentType.IsAssignableFrom(provider.GetType())) {
                 UsingEnvironment(provider);
             } else if (_configurationType.IsAssignableFrom(provider.GetType())) {
-                UsingConfigurationProvider((IConfiguration)provider);
+                UsingConfiguration((IConfiguration)provider);
             } else {
                 AddProvider(provider, false);
             }
@@ -173,6 +173,9 @@ public class ServiceCollectionRegistryConfiguration {
         return this;
     }
 
+    [Obsolete("Use 'UsingConfiguration' instead")]
+    public ServiceCollectionRegistryConfiguration UsingConfigurationProvider(IConfiguration configuration) => UsingConfiguration(configuration);
+
     /// <summary>
     /// The <see cref="IConfiguration"/> to provide when applying registries.
     /// Only needed if it is used by a registry
@@ -180,7 +183,7 @@ public class ServiceCollectionRegistryConfiguration {
     /// <param name="configuration">The configuration to use</param>
     /// <returns></returns>
     /// <exception cref="ArgumentNullException"></exception>
-    public ServiceCollectionRegistryConfiguration UsingConfigurationProvider(IConfiguration configuration) {
+    public ServiceCollectionRegistryConfiguration UsingConfiguration(IConfiguration configuration) {
         if (configuration is null) {
             throw new ArgumentNullException(nameof(configuration));
         }

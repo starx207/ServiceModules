@@ -226,7 +226,7 @@ public class ServiceCollectionExtensions_Should {
             if (setThroughProviderExtension) {
                 config.UsingProviders(expectedCfg);
             } else {
-                config.UsingConfigurationProvider(expectedCfg);
+                config.UsingConfiguration(expectedCfg);
             }
         });
 
@@ -248,8 +248,8 @@ public class ServiceCollectionExtensions_Should {
 
         // Act
         services.ApplyRegistries(config
-            => config.UsingConfigurationProvider(firstCfg)
-                .UsingConfigurationProvider(expectedCfg));
+            => config.UsingConfiguration(firstCfg)
+                .UsingConfiguration(expectedCfg));
 
         // Assert
         using (new AssertionScope()) {
