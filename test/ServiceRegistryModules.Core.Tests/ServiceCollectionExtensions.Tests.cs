@@ -19,7 +19,7 @@ public class ServiceCollectionExtensions_Should {
         var mock = new Dependencies();
         var services = CreateServices(mock);
         var expectedOptions = CreateOptions();
-        expectedOptions.RegistryConfigSectionKey = "service_registries";
+        expectedOptions.RegistryConfigSectionKey = ServiceRegistryModulesDefaults.CONFIGURATION_KEY;
         expectedOptions.PublicOnly = false;
         expectedOptions.RegistryTypes.Add(typeof(TestRegistry1));
 

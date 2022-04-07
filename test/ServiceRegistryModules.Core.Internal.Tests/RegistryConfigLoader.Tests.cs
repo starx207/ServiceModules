@@ -165,7 +165,7 @@ public class RegistryConfigLoader_Should {
 
     #region Test Helpers
     private static IRegistryConfigLoader CreateService() => new RegistryConfigLoader();
-    private static RegistryOptions CreateOptions(Action<ConfigurationBuilder>? config = null, string? sectionKey = "service_registries", bool nullConfig = false) {
+    private static RegistryOptions CreateOptions(Action<ConfigurationBuilder>? config = null, string? sectionKey = ServiceRegistryModulesDefaults.CONFIGURATION_KEY, bool nullConfig = false) {
         var options = new RegistryOptions() {
             RegistryConfigSectionKey = sectionKey!
         };
