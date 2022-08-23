@@ -64,7 +64,8 @@ public class ServiceCollectionExtensions_Should {
         var expectedRegistries = new[] {
             typeof(TestSamples1.TestRegistry1),
             typeof(TestSamples1.TestRegistry2),
-            typeof(TestSamples2.TestRegistry1)
+            typeof(TestSamples2.TestRegistry1),
+            typeof(TestSamples2.TestRegistry2)
         };
         var mock = new Dependencies();
         var services = CreateServices(mock);

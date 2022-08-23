@@ -22,10 +22,15 @@ internal class RegistryConfigLoader : IRegistryConfigLoader {
                 } else {
                     var value = propertySection.GetSection(nameof(RegistryPropertyConfig.Value)).Value;
                     bool.TryParse(propertySection.GetSection(nameof(RegistryPropertyConfig.SuppressErrors)).Value, out var suppressErr);
-                    registryConfig.AddPropertyTo(registrySection.Key, propertySection.Key, new RegistryPropertyConfig() {
+                    Enum.TryParse<ConfigurationType>(propertySection.GetSection(nameof(RegistryPropertyConfig.Type)).Value, true, out var type);
+
+                    var config = new RegistryPropertyConfig() {
                         Value = value,
-                        SuppressErrors = suppressErr
-                    });
+                        SuppressErrors = suppressErr,
+                        Type = type
+                    };
+
+                    registryConfig.AddPropertyTo(registrySection.Key, propertySection.Key, config);
                 }
             }
         }

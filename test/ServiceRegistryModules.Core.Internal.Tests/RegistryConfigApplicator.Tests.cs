@@ -117,10 +117,12 @@ namespace ServiceRegistryModules.Internal.Tests {
             return services.BuildServiceProvider().GetRequiredService<IRegistryConfigApplicator>();
         }
         private static RegistryOptions CreateOptions(bool publicOnly = false) => new() { PublicOnly = publicOnly };
-        private static RegistryPropertyConfig CreatePropConfig(string value = "test", bool suppressErrs = false)
+        private static RegistryPropertyConfig CreatePropConfig(string value = "test", bool suppressErrs = false, ConfigurationType type = ConfigurationType.Auto, string? hintPath = null)
             => new() {
                 Value = value,
-                SuppressErrors = suppressErrs
+                SuppressErrors = suppressErrs,
+                Type = type,
+                HintPath = hintPath
             };
 
         private static Namespace1.TestRegistry CreateTestRegistry1() => new();

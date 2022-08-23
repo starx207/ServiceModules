@@ -89,6 +89,7 @@ public class RegistryConfigLoader_Should {
         expectedConfig.AddPropertyTo("registry1", "prop1", CreatePropCfg(value: "val1"));
         expectedConfig.AddPropertyTo("registry1", "prop2", "val2");
         expectedConfig.AddPropertyTo("registry1", "prop3", CreatePropCfg(value: "val2", suppressErrors: true));
+        expectedConfig.AddPropertyTo("registry1", "prop4", CreatePropCfg(value: "val2"));
 
         var configEntries = expectedConfig
             .SelectMany(registryEntry => registryEntry.Value
@@ -100,10 +101,41 @@ public class RegistryConfigLoader_Should {
 
         // Add the error suppression entries
         configEntries.AddRange(expectedConfig.SelectMany(registryEntry => registryEntry.Value
-            .Where(propEntry => propEntry.Key != "prop2")
+            .Where(propEntry => propEntry.Key == "prop3" || propEntry.Key == "prop4")
             .Select(propEntry => KeyValuePair.Create(
                 $"{key}:{registryEntry.Key}:{propEntry.Key}:{nameof(propEntry.Value.SuppressErrors)}",
                 propEntry.Value.SuppressErrors.ToString())))!);
+
+        var options = CreateOptions(builder => builder.AddInMemoryCollection(configEntries), sectionKey: key);
+        var service = CreateService();
+
+        // Act
+        var actualConfig = service.LoadFrom(options);
+
+        // Assert
+        actualConfig.Should().BeEquivalentTo(expectedConfig);
+    }
+
+    [Fact]
+    public void CreateTheConfiguration_ForAnEventDelegate() {
+        // Arrange
+        var key = "my_registry_config";
+        var expectedConfig = new RegistryConfiguration();
+        expectedConfig.AddPropertyTo("registry1", "prop1", CreatePropCfg(value: "val1", type: ConfigurationType.Event));
+
+        var configEntries = expectedConfig
+            .SelectMany(registryEntry => registryEntry.Value
+                .SelectMany(propEntry => new[] {
+                    KeyValuePair.Create(
+                        $"{key}:{registryEntry.Key}:{propEntry.Key}:{nameof(propEntry.Value.Value)}",
+                        propEntry.Value.Value?.ToString()
+                    ),
+                    KeyValuePair.Create(
+                        $"{key}:{registryEntry.Key}:{propEntry.Key}:{nameof(propEntry.Value.Type)}",
+                        propEntry.Value.Type.ToString()?.ToLower()
+                    )
+                }))
+            .ToList();
 
         var options = CreateOptions(builder => builder.AddInMemoryCollection(configEntries), sectionKey: key);
         var service = CreateService();
@@ -176,7 +208,7 @@ public class RegistryConfigLoader_Should {
         }
         return options;
     }
-    private static RegistryPropertyConfig CreatePropCfg(object? value = null, bool suppressErrors = false)
-        => new() { Value = value, SuppressErrors = suppressErrors };
+    private static RegistryPropertyConfig CreatePropCfg(object? value = null, bool suppressErrors = false, ConfigurationType type = ConfigurationType.Auto)
+        => new() { Value = value, SuppressErrors = suppressErrors, Type = type };
     #endregion
 }

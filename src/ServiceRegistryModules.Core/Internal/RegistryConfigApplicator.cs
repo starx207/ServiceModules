@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using ServiceRegistryModules.Exceptions;
@@ -28,8 +29,16 @@ internal class RegistryConfigApplicator : IRegistryConfigApplicator {
             return;
         }
 
-        var propertiesToSet = GetPropertiesToConfigure(registryType, config);
-        GuardUndefinedProperties(registryType, propertiesToSet, config);
+        var allMemberInfo = GetMembersToConfigure(registryType, config);
+        GuardUndefinedMembers(registryType, allMemberInfo, config);
+
+        ApplyPropertyConfigurations(registry, registryType, config, allMemberInfo);
+        ApplyEventConfigurations(registry, registryType, config, allMemberInfo);
+    }
+
+    private void ApplyPropertyConfigurations(IRegistryModule registry, Type registryType, IReadOnlyDictionary<string, RegistryPropertyConfig> allConfig, IEnumerable<MemberInfo> allMemberInfo) {
+        var propertiesToSet = allMemberInfo.Where(m => m.MemberType == MemberTypes.Property).Cast<PropertyInfo>();
+        var config = FilterConfigType(allConfig, ConfigurationType.Property, propertiesToSet.Select(p => p.Name));
         propertiesToSet = FilterUnsettablePropertiesOrThrow(registryType, propertiesToSet, config);
 
         foreach (var prop in propertiesToSet) {
@@ -44,17 +53,99 @@ internal class RegistryConfigApplicator : IRegistryConfigApplicator {
         }
     }
 
-    private void GuardUndefinedProperties(Type registryType, IEnumerable<PropertyInfo> propertiesToSet, IReadOnlyDictionary<string, RegistryPropertyConfig> config) {
+    private void ApplyEventConfigurations(IRegistryModule registry, Type registryType, IReadOnlyDictionary<string, RegistryPropertyConfig> allConfig, IEnumerable<MemberInfo> allMemberInfo) {
+        var eventsToSet = allMemberInfo.Where(m => m.MemberType == MemberTypes.Event).Cast<EventInfo>();
+        var config = FilterConfigType(allConfig, ConfigurationType.Event, eventsToSet.Select(e => e.Name));
+
+        foreach (var evt in eventsToSet) {
+            var suppressErrs = config[evt.Name].SuppressErrors;
+            var (assmName, typName, mthdName) = UnpackStaticMethod(config[evt.Name].Value!.ToString(), suppressErrs);
+            if (assmName is null || typName is null || mthdName is null) {
+                continue;
+            }
+
+            Assembly assembly;
+            try {
+                assembly = string.IsNullOrEmpty(config[evt.Name].HintPath) ? Assembly.Load(new AssemblyName(assmName)) : Assembly.LoadFrom(config[evt.Name].HintPath);
+            } catch (FileNotFoundException ex) {
+                if (!suppressErrs) {
+                    throw new RegistryConfigurationException($"'{evt.Name}' event handler could not be loaded from assembly '{assmName}'.", ex);
+                }
+                continue;
+            }
+
+            Type? typeInfo;
+            try {
+                typeInfo = assembly.GetType($"{assmName}.{typName}", throwOnError: !suppressErrs);
+            } catch (TypeLoadException ex) {
+                throw new RegistryConfigurationException($"'{evt.Name}' event handler could not be found in type '{typName}'.", ex);
+            }
+
+            if (typeInfo is null) {
+                continue;
+            }
+
+            var methodInfo = typeInfo.GetMethod(mthdName, BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
+            if (methodInfo is null) {
+                if (suppressErrs) {
+                    continue;
+                }
+                throw new RegistryConfigurationException($"'{evt.Name}' event handler could not be set from method '{mthdName}'. No such static method found.");
+            }
+
+            var tDelegate = evt.EventHandlerType;
+            Delegate @delegate;
+            try {
+                @delegate = Delegate.CreateDelegate(tDelegate, methodInfo);
+            } catch (ArgumentException ex) {
+                if (!suppressErrs) {
+                    throw new RegistryConfigurationException($"'{typName}.{mthdName}' is not a compatible event handler for '{evt.Name}'.", ex);
+                }
+                continue;
+            }
+            var addHandler = evt.GetAddMethod();
+            var addHandlerArgs = new[] { @delegate };
+
+            addHandler.Invoke(registry, addHandlerArgs);
+        }
+    }
+
+    private (string? assemblyName, string? typeName, string? methodName) UnpackStaticMethod(string fullMethodName, bool suppressErrs) {
+        var errMsg = $"Invalid handler name ({fullMethodName}). Please use the fully qualified handler name.";
+
+        var lastIndex = fullMethodName.LastIndexOf('.');
+        if (lastIndex < 0) {
+            return suppressErrs ? default : throw new RegistryConfigurationException(errMsg);
+        }
+        var methodName = fullMethodName.Substring(lastIndex + 1);
+        fullMethodName = fullMethodName.Substring(0, lastIndex);
+
+        lastIndex = fullMethodName.LastIndexOf('.');
+        if (lastIndex < 0) {
+            return suppressErrs ? default : throw new RegistryConfigurationException(errMsg);
+        }
+        var typeName = fullMethodName.Substring(lastIndex + 1);
+
+        var assemblyName = fullMethodName.Substring(0, lastIndex);
+
+        return (assemblyName, typeName, methodName);
+    }
+
+    private IReadOnlyDictionary<string, RegistryPropertyConfig> FilterConfigType(IReadOnlyDictionary<string, RegistryPropertyConfig> allConfig, ConfigurationType type, IEnumerable<string> memberKeys)
+        => allConfig.Where(cfg => (type | ConfigurationType.Auto).HasFlag(cfg.Value.Type) && memberKeys.Contains(cfg.Key))
+        .ToDictionary(cfg => cfg.Key, cfg => cfg.Value);
+
+    private void GuardUndefinedMembers(Type registryType, IEnumerable<MemberInfo> membersToSet, IReadOnlyDictionary<string, RegistryPropertyConfig> config) {
         var undefinedConfigs = config.Where(cfg => !cfg.Value.SuppressErrors)
             .Select(cfg => cfg.Key)
-            .Except(propertiesToSet.Select(prop => prop.Name), StringComparer.OrdinalIgnoreCase);
+            .Except(membersToSet.Select(prop => prop.Name), StringComparer.OrdinalIgnoreCase);
 
         if (undefinedConfigs.Any()) {
             var msg = "Configuration failed for the following non-existant";
             if (_publicOnly) {
                 msg += " or non-public";
             }
-            msg += $" {registryType.Name} properties: {string.Join(", ", undefinedConfigs)}";
+            msg += $" {registryType.Name} members: {string.Join(", ", undefinedConfigs)}";
             throw new RegistryConfigurationException(msg);
         }
     }
@@ -82,13 +173,13 @@ internal class RegistryConfigApplicator : IRegistryConfigApplicator {
 
     private bool HasValidSetter(PropertyInfo property) => (_publicOnly ? property.GetSetMethod() : property.SetMethod) != null;
 
-    private IEnumerable<PropertyInfo> GetPropertiesToConfigure(Type registryType, IReadOnlyDictionary<string, RegistryPropertyConfig> config) {
+    private IEnumerable<MemberInfo> GetMembersToConfigure(Type registryType, IReadOnlyDictionary<string, RegistryPropertyConfig> config) {
         var bindingFlags = BindingFlags.Instance | BindingFlags.Public;
         if (!_publicOnly) {
             bindingFlags |= BindingFlags.NonPublic;
         }
 
-        return registryType.GetProperties(bindingFlags).Where(prop => config.ContainsKey(prop.Name));
+        return registryType.GetMembers(bindingFlags).Where(member => config.ContainsKey(member.Name));
     }
 
     private bool TryExtractConfigForRegistry(Type registryType, out IReadOnlyDictionary<string, RegistryPropertyConfig> config) {

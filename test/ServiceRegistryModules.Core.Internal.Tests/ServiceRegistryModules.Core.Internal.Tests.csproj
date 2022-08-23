@@ -26,6 +26,9 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\ServiceRegistryModules.Core\ServiceRegistryModules.Core.csproj" />
+    <ProjectReference Include="..\SampleProjects\TestSamples1\TestSamples1.csproj" />
+    <ProjectReference Include="..\SampleProjects\TestSamples2\TestSamples2.csproj" />
+    <ProjectReference Include="..\SampleProjects\TestSamples4\TestSamples4.csproj" />
   </ItemGroup>
 
 </Project>

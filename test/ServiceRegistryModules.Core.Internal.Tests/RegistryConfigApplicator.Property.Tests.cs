@@ -60,7 +60,7 @@ namespace ServiceRegistryModules.Internal.Tests {
             // Assert
             action.Should().Throw<RegistryConfigurationException>()
                 .Which.Message.Should()
-                .Be($"Configuration failed for the following non-existant {registry.GetType().Name} properties: {config.Single().Value.Single().Key}");
+                .Be($"Configuration failed for the following non-existant {registry.GetType().Name} members: {config.Single().Value.Single().Key}");
         }
 
         [Fact]
@@ -104,7 +104,7 @@ namespace ServiceRegistryModules.Internal.Tests {
             // Assert
             action.Should().Throw<RegistryConfigurationException>()
                 .Which.Message.Should()
-                .Be($"Configuration failed for the following non-existant or non-public {registry.GetType().Name} properties: InternalString, PrivateString");
+                .Be($"Configuration failed for the following non-existant or non-public {registry.GetType().Name} members: InternalString, PrivateString");
         }
 
         [Fact]
