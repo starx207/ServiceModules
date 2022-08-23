@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using ServiceRegistryModules.Exceptions;
 
 namespace ServiceRegistryModules.Internal;
 internal class RegistryRunner : IRegistryRunner {
@@ -29,7 +30,7 @@ internal class RegistryRunner : IRegistryRunner {
 
         if (options.Environment is { } environment) {
             if (!typeof(IHostEnvironment).IsAssignableFrom(environment.GetType())) {
-                throw new InvalidOperationException($"{nameof(options.Environment)} must implement {nameof(IHostEnvironment)}");
+                throw new RegistryConfigurationException($"{nameof(options.Environment)} must implement {nameof(IHostEnvironment)}");
             }
             var envName = ((IHostEnvironment)environment).EnvironmentName;
 

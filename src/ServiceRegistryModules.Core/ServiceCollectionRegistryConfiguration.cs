@@ -3,6 +3,7 @@ using System.Linq;
 using System.Reflection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
+using ServiceRegistryModules.Exceptions;
 using ServiceRegistryModules.Internal;
 
 namespace ServiceRegistryModules;
@@ -25,7 +26,7 @@ public class ServiceCollectionRegistryConfiguration {
     /// <exception cref="ArgumentException"></exception>
     public ServiceCollectionRegistryConfiguration WithConfigurationsFromSection(string sectionKey) {
         if (string.IsNullOrWhiteSpace(sectionKey)) {
-            throw new ArgumentException($"'{nameof(sectionKey)}' cannot be null or whitespace.", nameof(sectionKey));
+            throw new RegistryConfigurationException($"'{nameof(sectionKey)}' cannot be null or whitespace.");
         }
         _options.RegistryConfigSectionKey = sectionKey;
         return this;
@@ -64,7 +65,7 @@ public class ServiceCollectionRegistryConfiguration {
     /// <exception cref="ArgumentException"></exception>
     public ServiceCollectionRegistryConfiguration FromAssemblies(params Assembly[] assemblies) {
         if (assemblies is not { Length: > 0 }) {
-            throw new ArgumentException("No assemblies given to scan", nameof(assemblies));
+            throw new RegistryConfigurationException("No assemblies given to scan");
         }
 
         var registryTypes = assemblies.Distinct()
@@ -118,7 +119,7 @@ public class ServiceCollectionRegistryConfiguration {
         }
         var invalidRegistryTypes = registryTypes.Where(t => !typeof(IRegistryModule).IsAssignableFrom(t)).Select(t => t.Name);
         if (invalidRegistryTypes.Any()) {
-            throw new InvalidOperationException($"The following registry types do not implement {nameof(IRegistryModule)}: {string.Join(", ", invalidRegistryTypes)}");
+            throw new RegistryConfigurationException($"The following registry types do not implement {nameof(IRegistryModule)}: {string.Join(", ", invalidRegistryTypes)}");
         }
 
         foreach (var regType in registryTypes) {
@@ -164,7 +165,7 @@ public class ServiceCollectionRegistryConfiguration {
         }
 
         if (!_hostEnvironmentType.IsAssignableFrom(environment.GetType())) {
-            throw new InvalidOperationException($"Environment object must implement {nameof(IHostEnvironment)}");
+            throw new RegistryConfigurationException($"Environment object must implement {nameof(IHostEnvironment)}");
         }
 
         AddProvider(environment, true, _hostEnvironmentType);

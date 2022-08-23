@@ -4,6 +4,7 @@ using System.Linq;
 using FluentAssertions;
 using FluentAssertions.Execution;
 using Microsoft.Extensions.Configuration;
+using ServiceRegistryModules.Exceptions;
 using Xunit;
 
 namespace ServiceRegistryModules.Internal.Tests;
@@ -36,8 +37,7 @@ public class RegistryConfigLoader_Should {
 
         // Assert
         using (new AssertionScope()) {
-            var ex = action.Should().Throw<ArgumentException>();
-            ex.Which.ParamName.Should().Be("options");
+            var ex = action.Should().Throw<RegistryConfigurationException>();
             ex.Which.Message.Should().StartWith($"'{nameof(options.RegistryConfigSectionKey)}' cannot be null or whitespace.");
         }
     }

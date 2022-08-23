@@ -1,4 +1,5 @@
 ﻿using System;
+using ServiceRegistryModules.Exceptions;
 
 namespace ServiceRegistryModules.Internal;
 internal class RegistryConfigLoader : IRegistryConfigLoader {
@@ -8,7 +9,7 @@ internal class RegistryConfigLoader : IRegistryConfigLoader {
         }
 
         if (string.IsNullOrWhiteSpace(options.RegistryConfigSectionKey)) {
-            throw new ArgumentException($"'{nameof(options.RegistryConfigSectionKey)}' cannot be null or whitespace.", nameof(options));
+            throw new RegistryConfigurationException($"'{nameof(options.RegistryConfigSectionKey)}' cannot be null or whitespace.");
         }
 
         var registryConfig = new RegistryConfiguration();

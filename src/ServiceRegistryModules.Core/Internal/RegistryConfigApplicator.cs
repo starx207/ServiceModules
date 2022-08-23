@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Reflection;
+using ServiceRegistryModules.Exceptions;
 
 namespace ServiceRegistryModules.Internal;
 internal class RegistryConfigApplicator : IRegistryConfigApplicator {
@@ -35,9 +36,9 @@ internal class RegistryConfigApplicator : IRegistryConfigApplicator {
             var converter = TypeDescriptor.GetConverter(prop.PropertyType);
             try {
                 prop.SetValue(registry, converter.ConvertFrom(config[prop.Name].Value));
-            } catch {
+            } catch (Exception ex) {
                 if (!config.TryGetValue(prop.Name, out var value) || !value.SuppressErrors) {
-                    throw;
+                    throw new RegistryConfigurationException($"Unable to set {prop.Name} value to configured value.", ex);
                 }
             }
         }
@@ -54,7 +55,7 @@ internal class RegistryConfigApplicator : IRegistryConfigApplicator {
                 msg += " or non-public";
             }
             msg += $" {registryType.Name} properties: {string.Join(", ", undefinedConfigs)}";
-            throw new InvalidOperationException(msg);
+            throw new RegistryConfigurationException(msg);
         }
     }
 
@@ -73,7 +74,7 @@ internal class RegistryConfigApplicator : IRegistryConfigApplicator {
                 msg += " public";
             }
             msg += $" setter found for the following properties: {string.Join(", ", unsettableProps)}";
-            throw new InvalidOperationException(msg);
+            throw new RegistryConfigurationException(msg);
         }
 
         return settableProps;

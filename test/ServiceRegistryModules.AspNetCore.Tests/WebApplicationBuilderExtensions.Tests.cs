@@ -7,6 +7,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Moq;
+using ServiceRegistryModules.Exceptions;
 using ServiceRegistryModules.Internal;
 using Xunit;
 
@@ -170,7 +171,7 @@ public class WebApplicationBuilderExtensions_Should {
             => config.OfTypes(typeof(TestService1), typeof(Dependencies)));
 
         // Assert
-        action.Should().Throw<InvalidOperationException>()
+        action.Should().Throw<RegistryConfigurationException>()
             .Which.Message.Should().Be("The following registry types do not implement IRegistryModule: TestService1, Dependencies");
     }
 

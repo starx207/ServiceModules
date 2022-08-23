@@ -7,6 +7,7 @@ using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using Moq;
 using Moq.Language.Flow;
+using ServiceRegistryModules.Exceptions;
 using Xunit;
 
 namespace ServiceRegistryModules.Internal.Tests;
@@ -145,7 +146,7 @@ public class RegistryRunner_Should {
         var action = () => service.ApplyRegistries(CreateServiceCollection(), options);
 
         // Assert
-        action.Should().Throw<InvalidOperationException>()
+        action.Should().Throw<RegistryConfigurationException>()
             .Which.Message.Should().Be("Environment must implement IHostEnvironment");
     }
     #endregion
