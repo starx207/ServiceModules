@@ -3,5 +3,6 @@
 public enum ConfigurationType {
     Auto = 0,
     Property = 1,
-    Event = 2
+    Event = 2,
+    Config = 4
 }

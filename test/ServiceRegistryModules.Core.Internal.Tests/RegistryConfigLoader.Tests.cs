@@ -148,6 +148,80 @@ public class RegistryConfigLoader_Should {
     }
 
     [Fact]
+    public void CreateTheConfiguration_UsingAnotherConfigKey_ToSetTheValue() {
+        // Arrange
+        var key = "my_registry_config";
+        var expectedValue = "some-value-in-another-key";
+        var otherKey = "some:other:key";
+
+        var configEntries = new Dictionary<string, string> {
+            { $"{key}:registry1:prop1:value", otherKey },
+            { $"{key}:registry1:prop1:type", ConfigurationType.Config.ToString().ToLower() },
+            { otherKey, expectedValue }
+        };
+
+        var expectedConfig = new RegistryConfiguration();
+        expectedConfig.AddPropertyTo("registry1", "prop1", CreatePropCfg(value: expectedValue, type: ConfigurationType.Auto));
+
+        var options = CreateOptions(builder => builder.AddInMemoryCollection(configEntries), sectionKey: key);
+        var service = CreateService();
+
+        // Act
+        var actualConfig = service.LoadFrom(options);
+
+        // Assert
+        actualConfig.Should().BeEquivalentTo(expectedConfig);
+    }
+
+    [Fact]
+    public void ThrowAnException_WhenAConfigurationWithTypeConfig_CannotBeResolved() {
+        // Arrange
+        var key = "my_registry_config";
+        var otherKey = "some:missing:key";
+
+        var configEntries = new Dictionary<string, string> {
+            { $"{key}:registry1:prop1:value", otherKey },
+            { $"{key}:registry1:prop1:type", ConfigurationType.Config.ToString().ToLower() },
+            { otherKey.Replace(":missing:", ":not_missing:"), "some-value" }
+        };
+
+        var options = CreateOptions(builder => builder.AddInMemoryCollection(configEntries), sectionKey: key);
+        var service = CreateService();
+
+        // Act
+        var action = () => service.LoadFrom(options);
+
+        // Assert
+        action.Should().Throw<RegistryConfigurationException>().Which
+            .Message.Should().Be($"Unable to resolve configuration key for '{otherKey}'");
+    }
+
+    [Fact]
+    public void NotThrowAnExceptionOrAddTheConfiguration_WhenAConfigurationWithTypeConfig_CannotBeResolved_ButErrorSuppressionIsOn() {
+        // Arrange
+        var key = "my_registry_config";
+        var otherKey = "some:missing:key";
+
+        var configEntries = new Dictionary<string, string> {
+            { $"{key}:registry1:prop1:value", otherKey },
+            { $"{key}:registry1:prop1:type", ConfigurationType.Config.ToString().ToLower() },
+            { $"{key}:registry1:prop1:suppresserrors", "true" },
+            { otherKey.Replace(":missing:", ":not_missing:"), "some-value" }
+        };
+
+        var options = CreateOptions(builder => builder.AddInMemoryCollection(configEntries), sectionKey: key);
+        var service = CreateService();
+
+        // Act
+        RegistryConfiguration? actualConfig = null;
+        var action = () => actualConfig = service.LoadFrom(options);
+
+        // Assert
+        action.Should().NotThrow();
+        actualConfig.Should().NotBeNull().And.HaveCount(0);
+    }
+
+    [Fact]
     public void NotReturnKeys_FromTheWrongConfigSection() {
         // Arrange
         var key = "my_registry_config";

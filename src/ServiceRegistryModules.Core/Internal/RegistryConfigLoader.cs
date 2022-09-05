@@ -24,6 +24,18 @@ internal class RegistryConfigLoader : IRegistryConfigLoader {
                     bool.TryParse(propertySection.GetSection(nameof(RegistryPropertyConfig.SuppressErrors)).Value, out var suppressErr);
                     Enum.TryParse<ConfigurationType>(propertySection.GetSection(nameof(RegistryPropertyConfig.Type)).Value, true, out var type);
 
+                    if (type == ConfigurationType.Config) {
+                        var newValue = options.Configuration[value];
+                        if (newValue is null) {
+                            if (suppressErr) {
+                                continue;
+                            }
+                            throw new RegistryConfigurationException($"Unable to resolve configuration key for '{value}'");
+                        }
+                        value = newValue;
+                        type = ConfigurationType.Auto;
+                    }
+
                     var config = new RegistryPropertyConfig() {
                         Value = value,
                         SuppressErrors = suppressErr,
