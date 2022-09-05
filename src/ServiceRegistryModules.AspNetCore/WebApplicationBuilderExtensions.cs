@@ -1,6 +1,5 @@
 ﻿using System.Reflection;
 using Microsoft.AspNetCore.Builder;
-using ServiceRegistryModules.AspNetCore;
 
 namespace ServiceRegistryModules;
 public static class WebApplicationBuilderExtensions {
@@ -8,7 +7,7 @@ public static class WebApplicationBuilderExtensions {
     /// Applies the <see cref="IRegistryModule"/>s from the given assemblies.
     /// If no assemblies provided, the calling assembly will be scanned for <see cref="IRegistryModule"/> implementations to apply.
     /// </summary>
-    /// <param name="services"></param>
+    /// <param name="builder"></param>
     /// <param name="assemblies">The assemblies to scan</param>
     /// <returns></returns>
     /// <exception cref="InvalidOperationException">
@@ -24,7 +23,7 @@ public static class WebApplicationBuilderExtensions {
         }, Assembly.GetCallingAssembly());
 
     /// <summary>
-    /// Applies the <see cref="IRegistryModule"/>s according to the <see cref="WebApplicationRegistryConfiguration"/>.
+    /// Applies the <see cref="IRegistryModule"/>s according to the <see cref="ServiceCollectionRegistryConfiguration"/>.
     /// If the configuration does not specify any registries, registry types, or registry assemblies, 
     /// the calling assembly will be scanned for <see cref="IRegistryModule"/> implementations to apply.
     /// </summary>
@@ -36,16 +35,13 @@ public static class WebApplicationBuilderExtensions {
     /// or when any registry configurations are invalid.
     /// </exception>
     /// <exception cref="ArgumentException">When registry configuration entry has an invalid value for a property</exception>
-    public static void ApplyRegistries(this WebApplicationBuilder builder, Action<WebApplicationRegistryConfiguration> registryConfiguration)
+    public static void ApplyRegistries(this WebApplicationBuilder builder, Action<ServiceCollectionRegistryConfiguration> registryConfiguration)
         => builder.ApplyRegistries(registryConfiguration, Assembly.GetCallingAssembly());
 
-    private static void ApplyRegistries(this WebApplicationBuilder builder, Action<WebApplicationRegistryConfiguration> registryConfiguration, Assembly callingAssembly)
+    private static void ApplyRegistries(this WebApplicationBuilder builder, Action<ServiceCollectionRegistryConfiguration> registryConfiguration, Assembly callingAssembly)
         => builder.Services.ApplyRegistries(config => {
-            config.WithDefaultAssembly(callingAssembly)
-            .UsingConfiguration(builder.Configuration)
-            .UsingEnvironment(builder.Environment);
-
-            var webAppConfig = new WebApplicationRegistryConfiguration(config);
-            registryConfiguration(webAppConfig);
-        });
+            config.UsingConfiguration(builder.Configuration);
+            config.UsingEnvironment(builder.Environment);
+            registryConfiguration(config);
+        }, callingAssembly);
 }
