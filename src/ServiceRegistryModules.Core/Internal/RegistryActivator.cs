@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using ServiceRegistryModules.Exceptions;
 
 namespace ServiceRegistryModules.Internal;
 internal class RegistryActivator : IRegistryActivator {
@@ -15,7 +16,7 @@ internal class RegistryActivator : IRegistryActivator {
             ? Enumerable.Empty<IRegistryModule>()
             : typesToCreate.Select(t => FindConstructorWithArgsThatSatisfy(t, options.AllowedRegistryCtorArgTypes) is { } ctor
                     ? CreateRegistryInstance(ctor, options)
-                    : throw new InvalidOperationException($"Unable to activate {nameof(IRegistryModule)} of type '{t.Name}' " +
+                    : throw new RegistryActivationException($"Unable to activate {nameof(IRegistryModule)} of type '{t.Name}' " +
                     $"-- no suitable constructor found. " +
                     $"Allowable constructor parameters are: {string.Join(", ", options.AllowedRegistryCtorArgTypes)}"));
 

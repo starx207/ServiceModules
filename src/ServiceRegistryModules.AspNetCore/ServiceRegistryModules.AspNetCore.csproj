@@ -5,7 +5,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
 
     <PackageId>ServiceRegistryModules.AspNetCore</PackageId>
-    <PackageVersion>1.0.0</PackageVersion>
+    <PackageVersion>1.1.0</PackageVersion>
     <Authors>Andrew Starr</Authors>
     <Description>
       ASP.NET extensions for ServiceRegistryModules

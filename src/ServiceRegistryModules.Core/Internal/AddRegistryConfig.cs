@@ -1,7 +1,6 @@
 ﻿namespace ServiceRegistryModules.Internal;
-public class RegistryPropertyConfig {
-    public object? Value { get; set; }
+public class AddRegistryConfig {
+    public string FullName { get; set; } = string.Empty;
     public bool SuppressErrors { get; set; }
-    public ConfigurationType Type { get; set; }
     public string? HintPath { get; set; }
 }

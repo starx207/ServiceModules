@@ -7,6 +7,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Moq;
+using ServiceRegistryModules.Exceptions;
 using ServiceRegistryModules.Internal;
 using Xunit;
 
@@ -19,7 +20,7 @@ public class WebApplicationBuilderExtensions_Should {
         var mock = new Dependencies();
         var services = CreateBuilder(mock);
         var expectedOptions = CreateOptions();
-        expectedOptions.RegistryConfigSectionKey = "service_registries";
+        expectedOptions.RegistryConfigSectionKey = ServiceRegistryModulesDefaults.REGISTRIES_KEY;
         expectedOptions.PublicOnly = false;
         expectedOptions.RegistryTypes.Add(typeof(TestRegistry1));
         expectedOptions.Providers.AddRange(new object[] {
@@ -92,7 +93,8 @@ public class WebApplicationBuilderExtensions_Should {
         var expectedRegistries = new[] {
             typeof(TestSamples1.TestRegistry1),
             typeof(TestSamples1.TestRegistry2),
-            typeof(TestSamples2.TestRegistry1)
+            typeof(TestSamples2.TestRegistry1),
+            typeof(TestSamples2.TestRegistry2)
         };
         var mock = new Dependencies();
         var services = CreateBuilder(mock);
@@ -170,7 +172,7 @@ public class WebApplicationBuilderExtensions_Should {
             => config.OfTypes(typeof(TestService1), typeof(Dependencies)));
 
         // Assert
-        action.Should().Throw<InvalidOperationException>()
+        action.Should().Throw<RegistryConfigurationException>()
             .Which.Message.Should().Be("The following registry types do not implement IRegistryModule: TestService1, Dependencies");
     }
 

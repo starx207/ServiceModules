@@ -4,6 +4,7 @@ using System.Linq;
 using FluentAssertions;
 using FluentAssertions.Execution;
 using Microsoft.Extensions.DependencyInjection;
+using ServiceRegistryModules.Exceptions;
 using Xunit;
 
 namespace ServiceRegistryModules.Internal.Tests;
@@ -110,7 +111,7 @@ public class RegistryActivator_Should {
         void ShouldThrow() => service.InstantiateRegistries(options);
 
         // Assert
-        var ex = Assert.Throws<InvalidOperationException>(ShouldThrow);
+        var ex = Assert.Throws<RegistryActivationException>(ShouldThrow);
         Assert.Equal(expectedMsg, ex.Message);
     }
 
