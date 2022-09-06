@@ -1,5 +1,6 @@
 ﻿using System.Reflection;
 using Microsoft.AspNetCore.Builder;
+using ServiceRegistryModules.Exceptions;
 
 namespace ServiceRegistryModules;
 public static class WebApplicationBuilderExtensions {
@@ -10,11 +11,11 @@ public static class WebApplicationBuilderExtensions {
     /// <param name="builder"></param>
     /// <param name="assemblies">The assemblies to scan</param>
     /// <returns></returns>
-    /// <exception cref="InvalidOperationException">
+    /// <exception cref="RegistryActivationException">
     /// When unable to instantiate an <see cref="IRegistryModule"/> implementation
     /// or when any registry configurations are invalid.
     /// </exception>
-    /// <exception cref="ArgumentException">When registry configuration entry has an invalid value for a property</exception>
+    /// <exception cref="RegistryConfigurationException">When there is a problem with the registry configuration</exception>
     public static void ApplyRegistries(this WebApplicationBuilder builder, params Assembly[] assemblies)
         => builder.ApplyRegistries(config => {
             if (assemblies.Any()) {
@@ -30,11 +31,11 @@ public static class WebApplicationBuilderExtensions {
     /// <param name="builder"></param>
     /// <param name="registryConfiguration">Configuration for which registries to apply</param>
     /// <returns></returns>
-    /// <exception cref="InvalidOperationException">
+    /// <exception cref="RegistryActivationException">
     /// When unable to instantiate an <see cref="IRegistryModule"/> implementation
     /// or when any registry configurations are invalid.
     /// </exception>
-    /// <exception cref="ArgumentException">When registry configuration entry has an invalid value for a property</exception>
+    /// <exception cref="RegistryConfigurationException">When there is a problem with the registry configuration</exception>
     public static void ApplyRegistries(this WebApplicationBuilder builder, Action<ServiceCollectionRegistryConfiguration> registryConfiguration)
         => builder.ApplyRegistries(registryConfiguration, Assembly.GetCallingAssembly());
 
