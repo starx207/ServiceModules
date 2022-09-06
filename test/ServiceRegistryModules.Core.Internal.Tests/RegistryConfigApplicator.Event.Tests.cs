@@ -76,9 +76,10 @@ namespace ServiceRegistryModules.Internal.Tests {
         public void ThisTestsHavingTheHostAssm_CallbackToTheTestAssm_ForEventHandling() {
             // Arrange
             var handlerName = $"{typeof(Core.Internal.Tests.Utility).FullName}.{nameof(Core.Internal.Tests.Utility.OnMyPublicEvent)}";
+            var configKey = $"{ServiceRegistryModulesDefaults.REGISTRIES_KEY}:{ServiceRegistryModulesDefaults.CONFIGURATION_KEY}";
             var config = new ConfigurationBuilder()
                 .AddInMemoryCollection(new Dictionary<string, string>() {
-                    { $"{ServiceRegistryModulesDefaults.CONFIGURATION_KEY}:{nameof(TestSamples1.TestRegistry2)}:{nameof(TestSamples1.TestRegistry2.MyPublicEvent)}", handlerName }
+                    { $"{configKey}:{nameof(TestSamples1.TestRegistry2)}:{nameof(TestSamples1.TestRegistry2.MyPublicEvent)}", handlerName }
                 });
 
             // Act

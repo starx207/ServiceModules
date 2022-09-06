@@ -12,9 +12,10 @@ internal class RegistryConfigLoader : IRegistryConfigLoader {
             throw new RegistryConfigurationException($"'{nameof(options.RegistryConfigSectionKey)}' cannot be null or whitespace.");
         }
 
+        var configKey = $"{options.RegistryConfigSectionKey}:{ServiceRegistryModulesDefaults.CONFIGURATION_KEY}";
         var registryConfig = new RegistryConfiguration();
 
-        var configSection = options.Configuration.GetSection(options.RegistryConfigSectionKey);
+        var configSection = options.Configuration.GetSection(configKey);
         foreach (var registrySection in configSection.GetChildren()) {
             foreach (var propertySection in registrySection.GetChildren()) {
                 if (propertySection.Value is { }) {

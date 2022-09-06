@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using FluentAssertions;
 using FluentAssertions.Execution;
@@ -20,7 +21,7 @@ public class ServiceCollectionExtensions_Should {
         var mock = new Dependencies();
         var services = CreateServices(mock);
         var expectedOptions = CreateOptions();
-        expectedOptions.RegistryConfigSectionKey = ServiceRegistryModulesDefaults.CONFIGURATION_KEY;
+        expectedOptions.RegistryConfigSectionKey = ServiceRegistryModulesDefaults.REGISTRIES_KEY;
         expectedOptions.PublicOnly = false;
         expectedOptions.RegistryTypes.Add(typeof(TestRegistry1));
 
@@ -275,6 +276,163 @@ public class ServiceCollectionExtensions_Should {
 
         // Assert
         mock.OptionsApplied?.RegistryTypes.Should().NotContain(registry.GetType());
+    }
+
+    [Fact]
+    public void AddRegistryTypesToTheOptions_ForAnyRegistriesInThe_Add_ConfigurationSection() {
+        // Arrange
+        var regInstance = new TestSamples1.TestRegistry1();
+        var regType = typeof(TestSamples2.TestRegistry2);
+        var mock = new Dependencies();
+        var services = CreateServices(mock);
+
+        var typeToAdd = typeof(TestSamples1.TestRegistry2);
+        var configuredAdditions = new[] {
+            typeToAdd,
+            regInstance.GetType(),
+            regType
+        };
+
+        var expectedTypes = new[] {
+            typeToAdd,
+            regType
+        };
+
+        var configKey = $"{ServiceRegistryModulesDefaults.REGISTRIES_KEY}:{ServiceRegistryModulesDefaults.ADD_MODULES_KEY}";
+        var configBuilder = new ConfigurationBuilder();
+        configBuilder.AddInMemoryCollection(configuredAdditions.Select((t, i) => KeyValuePair.Create($"{configKey}:{i}", t.FullName)));
+
+        // Act
+        services.ApplyRegistries(config
+            => config.From(regInstance).OfTypes(regType)
+            .UsingConfiguration(configBuilder.Build()));
+
+        // Assert
+        mock.OptionsApplied?.RegistryTypes.Should().BeEquivalentTo(expectedTypes);
+    }
+
+    [Fact]
+    public void AddRegistryTypesToTheOptions_ForRegistryInUnreferencedAssembly_UsingTheHintPath_InTheAddConfigurationSection() {
+        // Arrange
+        var mock = new Dependencies();
+        var services = CreateServices(mock);
+
+        var regType = typeof(TestSamples2.TestRegistry1);
+
+        var key = "my_configured_key";
+        var configKey = $"{key}:{ServiceRegistryModulesDefaults.ADD_MODULES_KEY}";
+        var configBuilder = new ConfigurationBuilder();
+        configBuilder.AddInMemoryCollection(new Dictionary<string, string> {
+            { $"{configKey}:0:fullname", "UnreferencedTestSamples.TestRegistry1" },
+            { $"{configKey}:0:hintpath", "../../../../SampleProjects/UnreferencedTestSamples/bin/Debug/netstandard2.1/UnreferencedTestSamples.dll" },
+            { $"{configKey}:1", regType.FullName! }
+        });
+
+        // Act
+        services.ApplyRegistries(config
+            => config.UsingConfiguration(configBuilder.Build()).WithConfigurationsFromSection(key));
+
+        // Assert
+        mock.OptionsApplied?.RegistryTypes.Should().HaveCount(2)
+            .And.Subject.Select(t => t.FullName).Should().BeEquivalentTo(new[] { regType.FullName, "UnreferencedTestSamples.TestRegistry1" });
+    }
+
+    [Fact]
+    public void ThrowAnException_WhenUnableToResolveAnyRegistries_ListedInThe_Add_ConfigurationSection() {
+        // Arrange
+        var mock = new Dependencies();
+        var services = CreateServices(mock);
+
+        var bogusRegistryNames = new[] {
+            "NonExistantAssembly.Registry1",
+            $"{nameof(TestSamples1)}.BogusRegistry"
+        };
+
+        var validRegistryName = typeof(TestSamples1.TestRegistry1).FullName!;
+        var configuredAdditions = new[] { validRegistryName }.Concat(bogusRegistryNames).ToArray();
+
+        var configKey = $"{ServiceRegistryModulesDefaults.REGISTRIES_KEY}:{ServiceRegistryModulesDefaults.ADD_MODULES_KEY}";
+        var configBuilder = new ConfigurationBuilder();
+        configBuilder.AddInMemoryCollection(configuredAdditions.SelectMany((name, i) => new[] { KeyValuePair.Create($"{configKey}:{i}", name) }));
+
+        // Act
+        var action = () => services.ApplyRegistries(config => config.UsingConfiguration(configBuilder.Build()));
+
+        // Assert
+        action.Should().Throw<RegistryConfigurationException>()
+            .Which.Message.Should().Be($"Unable to find additional configured registries: {string.Join(", ", bogusRegistryNames)}");
+    }
+
+    [Fact]
+    public void NotThrowAnException_WhenUnableToResolveARegistry_ListedInThe_Add_ConfigurationSection_WhenErrorSuppressionIsOn() {
+        // Arrange
+        var mock = new Dependencies();
+        var services = CreateServices(mock);
+
+        var bogusRegistryNames = new[] {
+            "NonExistantAssembly.Registry1",
+            $"{nameof(TestSamples1)}.BogusRegistry"
+        };
+
+        var validRegistryName = typeof(TestSamples1.TestRegistry1).FullName!;
+        var configuredAdditions = new[] { validRegistryName }.Concat(bogusRegistryNames).ToArray();
+
+        var configKey = $"{ServiceRegistryModulesDefaults.REGISTRIES_KEY}:{ServiceRegistryModulesDefaults.ADD_MODULES_KEY}";
+        var configBuilder = new ConfigurationBuilder();
+        configBuilder.AddInMemoryCollection(configuredAdditions.SelectMany((name, i) => name == validRegistryName
+                ? (new[] { KeyValuePair.Create($"{configKey}:{i}", name) })
+                : (IEnumerable<KeyValuePair<string, string>>)(new[] {
+                    KeyValuePair.Create($"{configKey}:{i}:FullName", name),
+                    KeyValuePair.Create($"{configKey}:{i}:SuppressErrors", "true")
+                })));
+
+        // Act
+        var action = () => services.ApplyRegistries(config => config.UsingConfiguration(configBuilder.Build()));
+
+        // Assert
+        action.Should().NotThrow();
+    }
+
+    [Theory,
+        InlineData(null),
+        InlineData("my_test_key")]
+    public void RemoveRegistryTypesAndInstance_ForAnyRegistiresListedInThe_Skip_ConfigurationSection(string? configuredKey) {
+        // Arrange
+        var regInstance = new TestSamples1.TestRegistry1();
+        var regType1 = typeof(TestSamples2.TestRegistry1);
+        var regType2 = typeof(TestSamples2.TestRegistry2);
+        var mock = new Dependencies();
+        var services = CreateServices(mock);
+
+        var extraRemoval = typeof(TestSamples1.TestRegistry2); // This should be ignored
+        var configuredRemovals = new[] {
+            extraRemoval,
+            regInstance.GetType(),
+            regType2
+        };
+
+        var expectedTypes = new[] {
+            regType1
+        };
+
+        var key = configuredKey ?? ServiceRegistryModulesDefaults.REGISTRIES_KEY;
+        var configKey = $"{key}:{ServiceRegistryModulesDefaults.SKIP_MODULES_KEY}";
+        var configBuilder = new ConfigurationBuilder();
+        configBuilder.AddInMemoryCollection(configuredRemovals.Select((t, i) => KeyValuePair.Create($"{configKey}:{i}", t.FullName?.ToLower())));
+
+        // Act
+        services.ApplyRegistries(config => {
+            config.From(regInstance)
+                .OfTypes(regType1, regType2)
+                .UsingConfiguration(configBuilder.Build());
+
+            if (configuredKey is not null) {
+                config.WithConfigurationsFromSection(configuredKey);
+            }
+        });
+
+        // Assert
+        mock.OptionsApplied?.RegistryTypes.Should().BeEquivalentTo(expectedTypes);
     }
     #endregion
 

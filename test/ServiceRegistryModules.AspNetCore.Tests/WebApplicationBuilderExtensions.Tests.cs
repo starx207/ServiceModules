@@ -20,7 +20,7 @@ public class WebApplicationBuilderExtensions_Should {
         var mock = new Dependencies();
         var services = CreateBuilder(mock);
         var expectedOptions = CreateOptions();
-        expectedOptions.RegistryConfigSectionKey = ServiceRegistryModulesDefaults.CONFIGURATION_KEY;
+        expectedOptions.RegistryConfigSectionKey = ServiceRegistryModulesDefaults.REGISTRIES_KEY;
         expectedOptions.PublicOnly = false;
         expectedOptions.RegistryTypes.Add(typeof(TestRegistry1));
         expectedOptions.Providers.AddRange(new object[] {

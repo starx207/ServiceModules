@@ -1,4 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using Microsoft.Extensions.Configuration;
@@ -267,10 +270,13 @@ public class ServiceCollectionRegistryConfiguration {
     }
 
     internal RegistryOptions GetOptions() {
+        LoadAdditionalRegistriesFromConfig();
+
         if (!Options.Registries.Any() && !Options.RegistryTypes.Any()) {
             AttemptToLoadFromDefaultAssembly();
         }
         RemoveRegistryTypesWithConcreteImplementations();
+        RemoveRegistriesSkippedInConfig();
         return Options;
     }
 
@@ -295,6 +301,108 @@ public class ServiceCollectionRegistryConfiguration {
         if (_defaultAssembly is { } assm) {
             FromAssemblies(assm);
         }
+    }
+
+    private void LoadAdditionalRegistriesFromConfig() {
+        if (Options.Configuration is null) {
+            return;
+        }
+
+        var addKey = $"{Options.RegistryConfigSectionKey}:{ServiceRegistryModulesDefaults.ADD_MODULES_KEY}";
+        var additionalRegistries = new List<AddRegistryConfig>();
+        var configSection = Options.Configuration.GetSection(addKey);
+
+        foreach (var addSection in configSection.GetChildren()) {
+            if (addSection.Value is { }) {
+                additionalRegistries.Add(new() { FullName = addSection.Value });
+            } else {
+                var fullName = addSection.GetSection(nameof(AddRegistryConfig.FullName)).Value;
+                bool.TryParse(addSection.GetSection(nameof(AddRegistryConfig.SuppressErrors)).Value, out var suppressErr);
+                var hintPath = addSection.GetSection(nameof(AddRegistryConfig.HintPath)).Value;
+
+                additionalRegistries.Add(new() {
+                    FullName = fullName,
+                    SuppressErrors = suppressErr,
+                    HintPath = hintPath
+                });
+            }
+        }
+
+        if (!additionalRegistries.Any()) {
+            return;
+        }
+
+        var unresolvedTypes = new List<string>();
+        var resolvedTypes = new List<Type>();
+        foreach (var additionalReg in additionalRegistries) {
+            if (!TryGetType(additionalReg, out var additionalType)) {
+                if (!additionalReg.SuppressErrors) {
+                    unresolvedTypes.Add(additionalReg.FullName);
+                }
+            } else {
+                resolvedTypes.Add(additionalType);
+            }
+        }
+
+        if (unresolvedTypes.Any()) {
+            throw new RegistryConfigurationException($"Unable to find additional configured registries: {string.Join(", ", unresolvedTypes)}");
+        }
+        if (!resolvedTypes.Any()) {
+            return;
+        }
+        OfTypes(resolvedTypes.ToArray());
+    }
+
+    private void RemoveRegistriesSkippedInConfig() {
+        if (Options.Configuration is null) {
+            return;
+        }
+
+        var skipKey = $"{Options.RegistryConfigSectionKey}:{ServiceRegistryModulesDefaults.SKIP_MODULES_KEY}";
+        var configSection = Options.Configuration.GetSection(skipKey);
+        var skipRegistries = configSection.GetChildren().Select(child => child.Value);
+
+        foreach (var skippedRegistry in skipRegistries) {
+            if (string.IsNullOrWhiteSpace(skippedRegistry)) {
+                continue;
+            }
+
+            var matchIdx = Options.RegistryTypes.FindIndex(t => skippedRegistry.Equals(t.FullName, StringComparison.OrdinalIgnoreCase));
+            if (matchIdx >= 0) {
+                Options.RegistryTypes.RemoveAt(matchIdx);
+                continue; // At this point we've already removed types that have an instance, so no need to continue
+            }
+
+            matchIdx = Options.Registries.FindIndex(r => skippedRegistry.Equals(r.GetType().FullName, StringComparison.OrdinalIgnoreCase));
+            if (matchIdx >= 0) {
+                Options.Registries.RemoveAt(matchIdx);
+            }
+        }
+    }
+
+    private bool TryGetType(AddRegistryConfig addConfig, [NotNullWhen(true)] out Type? foundType) {
+        foundType = null;
+
+        var fullTypeName = addConfig.FullName;
+        var hintPath = addConfig.HintPath;
+
+        var lastIndex = fullTypeName.LastIndexOf('.');
+        if (lastIndex < 0) {
+            return false;
+        }
+
+        var typeName = fullTypeName[(lastIndex + 1)..];
+        var assemblyName = fullTypeName[..lastIndex];
+
+        Assembly assembly;
+        try {
+            assembly = string.IsNullOrEmpty(hintPath) ? Assembly.Load(new AssemblyName(assemblyName)) : Assembly.LoadFrom(hintPath);
+        } catch (FileNotFoundException) {
+            return false;
+        }
+
+        foundType = assembly.GetType($"{assemblyName}.{typeName}", throwOnError: false);
+        return foundType is not null;
     }
 
     private protected void AddProvider(object provider, bool replaceExisting, params Type[] additionalArgsTypes) {

@@ -11,7 +11,7 @@ internal class RegistryOptions {
     public bool PublicOnly { get; set; }
     public IConfiguration? Configuration { get; set; }
     public object? Environment { get; set; }
-    public string RegistryConfigSectionKey { get; set; } = ServiceRegistryModulesDefaults.CONFIGURATION_KEY;
+    public string RegistryConfigSectionKey { get; set; } = ServiceRegistryModulesDefaults.REGISTRIES_KEY;
 
     public RegistryOptions() {
         Registries = new();

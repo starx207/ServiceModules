@@ -59,7 +59,7 @@ public class RegistryConfigLoader_Should {
         var configEntries = expectedConfig
             .SelectMany(registryEntry => registryEntry.Value
                 .Select(propEntry => KeyValuePair.Create(
-                    KeyTransform($"{key}:{registryEntry.Key}:{propEntry.Key}"),
+                    KeyTransform($"{key}:{ServiceRegistryModulesDefaults.CONFIGURATION_KEY}:{registryEntry.Key}:{propEntry.Key}"),
                     propEntry.Value.Value?.ToString()
                 )))
             .ToArray();
@@ -94,7 +94,7 @@ public class RegistryConfigLoader_Should {
         var configEntries = expectedConfig
             .SelectMany(registryEntry => registryEntry.Value
                 .Select(propEntry => KeyValuePair.Create(
-                    $"{key}:{registryEntry.Key}:{propEntry.Key}" + (propEntry.Key == "prop2" ? "" : $":{nameof(propEntry.Value.Value)}"),
+                    $"{key}:{ServiceRegistryModulesDefaults.CONFIGURATION_KEY}:{registryEntry.Key}:{propEntry.Key}" + (propEntry.Key == "prop2" ? "" : $":{nameof(propEntry.Value.Value)}"),
                     propEntry.Value.Value?.ToString()
                 )))
             .ToList();
@@ -103,7 +103,7 @@ public class RegistryConfigLoader_Should {
         configEntries.AddRange(expectedConfig.SelectMany(registryEntry => registryEntry.Value
             .Where(propEntry => propEntry.Key == "prop3" || propEntry.Key == "prop4")
             .Select(propEntry => KeyValuePair.Create(
-                $"{key}:{registryEntry.Key}:{propEntry.Key}:{nameof(propEntry.Value.SuppressErrors)}",
+                $"{key}:{ServiceRegistryModulesDefaults.CONFIGURATION_KEY}:{registryEntry.Key}:{propEntry.Key}:{nameof(propEntry.Value.SuppressErrors)}",
                 propEntry.Value.SuppressErrors.ToString())))!);
 
         var options = CreateOptions(builder => builder.AddInMemoryCollection(configEntries), sectionKey: key);
@@ -127,11 +127,11 @@ public class RegistryConfigLoader_Should {
             .SelectMany(registryEntry => registryEntry.Value
                 .SelectMany(propEntry => new[] {
                     KeyValuePair.Create(
-                        $"{key}:{registryEntry.Key}:{propEntry.Key}:{nameof(propEntry.Value.Value)}",
+                        $"{key}:{ServiceRegistryModulesDefaults.CONFIGURATION_KEY}:{registryEntry.Key}:{propEntry.Key}:{nameof(propEntry.Value.Value)}",
                         propEntry.Value.Value?.ToString()
                     ),
                     KeyValuePair.Create(
-                        $"{key}:{registryEntry.Key}:{propEntry.Key}:{nameof(propEntry.Value.Type)}",
+                        $"{key}:{ServiceRegistryModulesDefaults.CONFIGURATION_KEY}:{registryEntry.Key}:{propEntry.Key}:{nameof(propEntry.Value.Type)}",
                         propEntry.Value.Type.ToString()?.ToLower()
                     )
                 }))
@@ -155,8 +155,8 @@ public class RegistryConfigLoader_Should {
         var otherKey = "some:other:key";
 
         var configEntries = new Dictionary<string, string> {
-            { $"{key}:registry1:prop1:value", otherKey },
-            { $"{key}:registry1:prop1:type", ConfigurationType.Config.ToString().ToLower() },
+            { $"{key}:{ServiceRegistryModulesDefaults.CONFIGURATION_KEY}:registry1:prop1:value", otherKey },
+            { $"{key}:{ServiceRegistryModulesDefaults.CONFIGURATION_KEY}:registry1:prop1:type", ConfigurationType.Config.ToString().ToLower() },
             { otherKey, expectedValue }
         };
 
@@ -180,8 +180,8 @@ public class RegistryConfigLoader_Should {
         var otherKey = "some:missing:key";
 
         var configEntries = new Dictionary<string, string> {
-            { $"{key}:registry1:prop1:value", otherKey },
-            { $"{key}:registry1:prop1:type", ConfigurationType.Config.ToString().ToLower() },
+            { $"{key}:{ServiceRegistryModulesDefaults.CONFIGURATION_KEY}:registry1:prop1:value", otherKey },
+            { $"{key}:{ServiceRegistryModulesDefaults.CONFIGURATION_KEY}:registry1:prop1:type", ConfigurationType.Config.ToString().ToLower() },
             { otherKey.Replace(":missing:", ":not_missing:"), "some-value" }
         };
 
@@ -203,9 +203,9 @@ public class RegistryConfigLoader_Should {
         var otherKey = "some:missing:key";
 
         var configEntries = new Dictionary<string, string> {
-            { $"{key}:registry1:prop1:value", otherKey },
-            { $"{key}:registry1:prop1:type", ConfigurationType.Config.ToString().ToLower() },
-            { $"{key}:registry1:prop1:suppresserrors", "true" },
+            { $"{key}:{ServiceRegistryModulesDefaults.CONFIGURATION_KEY}:registry1:prop1:value", otherKey },
+            { $"{key}:{ServiceRegistryModulesDefaults.CONFIGURATION_KEY}:registry1:prop1:type", ConfigurationType.Config.ToString().ToLower() },
+            { $"{key}:{ServiceRegistryModulesDefaults.CONFIGURATION_KEY}:registry1:prop1:suppresserrors", "true" },
             { otherKey.Replace(":missing:", ":not_missing:"), "some-value" }
         };
 
@@ -236,7 +236,7 @@ public class RegistryConfigLoader_Should {
         var configEntries = unexpectedConfig
             .SelectMany(registryEntry => registryEntry.Value
                 .Select(propEntry => KeyValuePair.Create(
-                    $"{key}:{registryEntry.Key}:{propEntry.Key}",
+                    $"{key}:{ServiceRegistryModulesDefaults.CONFIGURATION_KEY}:{registryEntry.Key}:{propEntry.Key}",
                     propEntry.Value.Value?.ToString()
                 )))
             .ToArray();
@@ -257,7 +257,7 @@ public class RegistryConfigLoader_Should {
         var key = "registry_config";
 
         var options = CreateOptions(builder => builder.AddInMemoryCollection(new[] {
-            KeyValuePair.Create($"{key}:SomeRegistry", "no-properties")
+            KeyValuePair.Create($"{key}:{ServiceRegistryModulesDefaults.CONFIGURATION_KEY}:SomeRegistry", "no-properties")
         }), sectionKey: key);
         var service = CreateService();
 
@@ -271,7 +271,7 @@ public class RegistryConfigLoader_Should {
 
     #region Test Helpers
     private static IRegistryConfigLoader CreateService() => new RegistryConfigLoader();
-    private static RegistryOptions CreateOptions(Action<ConfigurationBuilder>? config = null, string? sectionKey = ServiceRegistryModulesDefaults.CONFIGURATION_KEY, bool nullConfig = false) {
+    private static RegistryOptions CreateOptions(Action<ConfigurationBuilder>? config = null, string? sectionKey = ServiceRegistryModulesDefaults.REGISTRIES_KEY, bool nullConfig = false) {
         var options = new RegistryOptions() {
             RegistryConfigSectionKey = sectionKey!
         };
