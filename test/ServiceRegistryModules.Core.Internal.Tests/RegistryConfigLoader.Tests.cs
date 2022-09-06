@@ -89,7 +89,7 @@ public class RegistryConfigLoader_Should {
         expectedConfig.AddPropertyTo("registry1", "prop1", CreatePropCfg(value: "val1"));
         expectedConfig.AddPropertyTo("registry1", "prop2", "val2");
         expectedConfig.AddPropertyTo("registry1", "prop3", CreatePropCfg(value: "val2", suppressErrors: true));
-        expectedConfig.AddPropertyTo("registry1", "prop4", CreatePropCfg(value: "val2"));
+        expectedConfig.AddPropertyTo("registry1", "prop4", CreatePropCfg(value: "val2", hintPath: "some-hint-path"));
 
         var configEntries = expectedConfig
             .SelectMany(registryEntry => registryEntry.Value
@@ -105,6 +105,13 @@ public class RegistryConfigLoader_Should {
             .Select(propEntry => KeyValuePair.Create(
                 $"{key}:{ServiceRegistryModulesDefaults.CONFIGURATION_KEY}:{registryEntry.Key}:{propEntry.Key}:{nameof(propEntry.Value.SuppressErrors)}",
                 propEntry.Value.SuppressErrors.ToString())))!);
+
+        // Add the hintpath entries
+        configEntries.AddRange(expectedConfig.SelectMany(registryEntry => registryEntry.Value
+            .Where(propEntry => propEntry.Key == "prop4")
+            .Select(propEntry => KeyValuePair.Create(
+                $"{key}:{ServiceRegistryModulesDefaults.CONFIGURATION_KEY}:{registryEntry.Key}:{propEntry.Key}:{nameof(propEntry.Value.HintPath)}",
+                propEntry.Value.HintPath))));
 
         var options = CreateOptions(builder => builder.AddInMemoryCollection(configEntries), sectionKey: key);
         var service = CreateService();
@@ -282,7 +289,7 @@ public class RegistryConfigLoader_Should {
         }
         return options;
     }
-    private static RegistryPropertyConfig CreatePropCfg(object? value = null, bool suppressErrors = false, ConfigurationType type = ConfigurationType.Auto)
-        => new() { Value = value, SuppressErrors = suppressErrors, Type = type };
+    private static RegistryPropertyConfig CreatePropCfg(object? value = null, bool suppressErrors = false, ConfigurationType type = ConfigurationType.Auto, string? hintPath = null)
+        => new() { Value = value, SuppressErrors = suppressErrors, Type = type, HintPath = hintPath };
     #endregion
 }

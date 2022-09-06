@@ -22,6 +22,7 @@ internal class RegistryConfigLoader : IRegistryConfigLoader {
                     registryConfig.AddPropertyTo(registrySection.Key, propertySection.Key, propertySection.Value);
                 } else {
                     var value = propertySection.GetSection(nameof(RegistryPropertyConfig.Value)).Value;
+                    var hintPath = propertySection.GetSection(nameof(RegistryPropertyConfig.HintPath)).Value;
                     bool.TryParse(propertySection.GetSection(nameof(RegistryPropertyConfig.SuppressErrors)).Value, out var suppressErr);
                     Enum.TryParse<ConfigurationType>(propertySection.GetSection(nameof(RegistryPropertyConfig.Type)).Value, true, out var type);
 
@@ -40,7 +41,8 @@ internal class RegistryConfigLoader : IRegistryConfigLoader {
                     var config = new RegistryPropertyConfig() {
                         Value = value,
                         SuppressErrors = suppressErr,
-                        Type = type
+                        Type = type,
+                        HintPath = hintPath
                     };
 
                     registryConfig.AddPropertyTo(registrySection.Key, propertySection.Key, config);
