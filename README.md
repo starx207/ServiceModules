@@ -117,11 +117,17 @@ You can provide runtime configuration for your registries by defining a section 
 used by your application's `IConfiguration`. Add a configuration key called "service_registries" to one
 of your configuration sources (the key can be changed if you apply the registries using: `services.ApplyRegistries(config => config.UsingConfigurationProvider("my_custom_key"))`).
 
+This section is comprised of 3 subkeys:
+1. `configuration` - Configuration for properties/events of registries before they are applied.
+1. `add` - Additional registries to be loaded an applied.
+1. `skip` - Registries that should NOT be applied even if loaded.
+
+### Configuration section
 Each entry under this key represents a registry you want to configure. And each registry configuration can
-define properties of the registry to set before the registry is applied. The access modifiers of the properties
-and their setters don't matter unless your applying the registries using the `PublicOnly()` setting. Each property
-can be configured with errorSuppression on or off (off by default). If error suppression is turned on for a property,
-no errors will be thrown due to the property not existing, having incorrect access modifiers, or having an invalid value.
+define properties or events of the registry to set before the registry is applied. The access modifiers of the members
+and their setters don't matter unless your applying the registries using the `PublicOnly()` setting. Each member
+can be configured with errorSuppression on or off (off by default). If error suppression is turned on for a member,
+no errors will be thrown due to the member not existing, having incorrect access modifiers, or having an invalid value.
 
 Registry keys are matched in the following order:
 1. The full name of the registry is tried first (AssemblyName + TypeName).
@@ -132,33 +138,64 @@ A wildcard character of "*" can be used to indicate 0 or more occurrances of any
    wins. Ties are decided by the least number of wildcard characters.
 
 When registries are being applied, if a configuration key is found that matches one of those 3 criteria,
-the properties of the registry will be set according to the configured properties listed.
+the properties of the registry will be set according to the configured members listed.
+
+#### Event configuration
+Events on the registry can be configured by providing the fully qualified name of a static method to be used as
+an event handler for the event. If the handler method is located in an assembly that is not referenced by the assembly
+applying the registries, a `HintPath` may be specified to dicate where the assembly can be loaded from.
+
+### Dynamically added registries
+This key is an array of registries to add at runtime. The registry can either be defined just by specifying its fully
+qualified name *or* by defining its `FullName`, `SuppressErrors` and `HintPath` properties (use `HintPath` to load a registry
+from an unreferenced assembly).
+
+### Dynamically skipped registries
+This key is an array of registries to skip at runtime and consists of the fully qualified names of the registries to skip.
+Any registry in this list that is not loaded, will be ignored.
 
 ### Examples
 ``` json
 {
     "service_registries": {
-        "*Registry*": {
-            "Property1": 30
-        }, 
-
-        "AnotherRegistry": {
-            "APropertyToSet": "the new value"
-        },
-
-        "MyAssembly.With.A.RegistryModule": {
-            "Property1": "runtime value",
-            "AnotherProperty": false,
-            "PropertyWithErrorSuppression": {
-                "Value": "the value to assign to the property",
-                "SuppressErrors": true
+        "add": [
+            "AnAssemblyWith.RegistryToAdd",
+            {
+                "FullName": "UnreferencedAssembly.Registry",
+                "SuppressErrors": true,
+                "HintPath": "../path/to/assembly"
             }
-        },
+        ],
+        "skip": [
+            "AnAssemblyWith.RegistryToSkip"
+        ],
+        "configuration": {
+            "*Registry*": {
+                "Property1": 30
+            }, 
 
-        "MyAssembly.*": {
-            "PropertyToSetInAllRegistiresInMyAssembly": {
-                "Value": true,
-                "SuppressErrors": true
+            "AnotherRegistry": {
+                "APropertyToSet": "the new value"
+            },
+
+            "MyAssembly.With.A.RegistryModule": {
+                "Property1": "runtime value",
+                "AnotherProperty": false,
+                "PropertyWithErrorSuppression": {
+                    "Value": "the value to assign to the property",
+                    "SuppressErrors": true
+                }
+            },
+
+            "MyAssembly.*": {
+                "PropertyToSetInAllRegistiresInMyAssembly": {
+                    "Value": true,
+                    "SuppressErrors": true
+                },
+                "EventToAddHandlerFor": {
+                    "Value": "SomeAssembly.StaticMethod.ForEventHandler",
+                    "HintPath": "../path/to/unreferenced/handler/assembly"
+                }
             }
         }
     }
