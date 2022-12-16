@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+#if NETSTANDARD2_1_OR_GREATER
 using System.Diagnostics.CodeAnalysis;
+#endif
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -79,7 +81,7 @@ public class FullServiceCollectionRegistryConfiguration : ServiceCollectionRegis
         return this;
     }
 
-    #region New methods with different return type
+#region New methods with different return type
 
     /// <inheritdoc cref="ServiceCollectionRegistryConfiguration.WithConfigurationsFromSection(string)"/>
     public new FullServiceCollectionRegistryConfiguration WithConfigurationsFromSection(string sectionKey) {
@@ -123,7 +125,7 @@ public class FullServiceCollectionRegistryConfiguration : ServiceCollectionRegis
         return this;
     } 
 
-    #endregion
+#endregion
 }
 
 public class ServiceCollectionRegistryConfiguration {
@@ -380,7 +382,11 @@ public class ServiceCollectionRegistryConfiguration {
         }
     }
 
+#if NETSTANDARD2_1_OR_GREATER
     private bool TryGetType(AddRegistryConfig addConfig, [NotNullWhen(true)] out Type? foundType) {
+#else
+    private bool TryGetType(AddRegistryConfig addConfig, out Type? foundType) {
+#endif
         foundType = null;
 
         var fullTypeName = addConfig.FullName;
@@ -391,8 +397,13 @@ public class ServiceCollectionRegistryConfiguration {
             return false;
         }
 
+#if NETSTANDARD2_1_OR_GREATER
         var typeName = fullTypeName[(lastIndex + 1)..];
         var assemblyName = fullTypeName[..lastIndex];
+#else
+        var typeName = fullTypeName.Substring(lastIndex + 1);
+        var assemblyName = fullTypeName.Substring(0, lastIndex);
+#endif
 
         Assembly assembly;
         try {

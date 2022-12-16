@@ -21,5 +21,9 @@ public interface IRegistryModule {
     /// <summary>
     /// The order in which registry modules should be applied (highest priority first)
     /// </summary>
+#if NETSTANDARD2_1_OR_GREATER
     int Priority => 0;
+#else
+    int Priority { get; }
+#endif
 }
