@@ -91,9 +91,9 @@ services.ApplyRegistries(typeof(MyRegistry).Assembly, typeof(MyOtherRegistry).As
 // into the registries if required.
 services.ApplyRegistries(config =>
     config.PublicOnly()
-          .FromAssembliesOf<MyRegistry>()
+          .FromAssemblyOf<MyRegistry>()
           .UsingEnvironment(environment)
-          .UsingConfigurationProvider(configuration)
+          .UsingConfiguration(configuration)
 );
 
 // Applies the given registry types (regardless of access modifiers). If either registry
@@ -115,7 +115,7 @@ IRegistryModule implementations.
 ## Registry configuration
 You can provide runtime configuration for your registries by defining a section in any of the sources
 used by your application's `IConfiguration`. Add a configuration key called "service_registries" to one
-of your configuration sources (the key can be changed if you apply the registries using: `services.ApplyRegistries(config => config.UsingConfigurationProvider("my_custom_key"))`).
+of your configuration sources (the key can be changed if you apply the registries using: `services.ApplyRegistries(config => config.WithConfigurationsFromSection("my_custom_key"))`).
 
 This section is comprised of 3 subkeys:
 1. `configuration` - Configuration for properties/events of registries before they are applied.
