@@ -94,7 +94,7 @@ namespace ServiceRegistryModules.Internal.Tests {
         #endregion
 
         #region Test Inputs
-        private static IEnumerable<object[]> KeyMatchingInputs()
+        public static IEnumerable<object[]> KeyMatchingInputs()
             => new[] {
                 new object[] { 0, new[] { typeof(Namespace1.TestRegistry).FullName, typeof(Namespace1.TestRegistry).Name } },
                 new object[] { 0, new[] { typeof(Namespace1.TestRegistry).FullName, typeof(Namespace2.TestRegistry).FullName } },

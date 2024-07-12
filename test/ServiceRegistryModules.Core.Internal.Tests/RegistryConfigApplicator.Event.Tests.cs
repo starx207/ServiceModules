@@ -149,7 +149,7 @@ namespace ServiceRegistryModules.Internal.Tests {
         #endregion
 
         #region Test Data
-        private static IEnumerable<object[]> ExceptionData(string displayFormat) => new[] {
+        public static IEnumerable<object[]> ExceptionData(string displayFormat) => new[] {
             new object[] { new EventExceptionTestCase(displayFormat,
                 condition: "event handler assembly cannot be found",
                 handlerName: "Some.Bogus.Assembly.TestEventHandler",

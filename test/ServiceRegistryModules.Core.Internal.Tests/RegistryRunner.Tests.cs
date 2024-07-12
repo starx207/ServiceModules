@@ -152,7 +152,7 @@ public class RegistryRunner_Should {
     #endregion
 
     #region Test Inputs
-    private static IEnumerable<object[]> EnvironmentMatchInput(string? actualEnvironment) {
+    public static IEnumerable<object[]> EnvironmentMatchInput(string? actualEnvironment) {
         var registries = new[] {
             CreateMockRegistry("Development"),
             CreateMockRegistry("production"),
