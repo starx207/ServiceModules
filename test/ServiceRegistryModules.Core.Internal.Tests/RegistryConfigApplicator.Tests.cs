@@ -94,15 +94,15 @@ namespace ServiceRegistryModules.Internal.Tests {
         #endregion
 
         #region Test Inputs
-        public static IEnumerable<object[]> KeyMatchingInputs()
-            => new[] {
-                new object[] { 0, new[] { typeof(Namespace1.TestRegistry).FullName, typeof(Namespace1.TestRegistry).Name } },
-                new object[] { 0, new[] { typeof(Namespace1.TestRegistry).FullName, typeof(Namespace2.TestRegistry).FullName } },
-                new object[] { 1, new[] { typeof(Namespace2.TestRegistry).FullName, typeof(Namespace1.TestRegistry).Name } },
-                new object[] { 1, new[] { "ServiceRegistryModules.Internal.Tests.*.TestRegistry", typeof(Namespace1.TestRegistry).Name } },
-                new object[] { 0, new[] { "ServiceRegistryModules.Internal.Tests.*.TestRegistry", "ServiceRegistryModules.Internal.Tests.*" } },
-                new object[] { 0, new[] { "ServiceRegistryModules.Internal.Test*", "ServiceRegistryModules.Internal*Test*" } },
-                new object[] { 1, new[] { "*ServiceRegistryModules.Internal.Test*", "ServiceRegistryModules.Internal.Test*" } }
+        public static TheoryData<int, string[]> KeyMatchingInputs()
+            => new() {
+                { 0, new[] { typeof(Namespace1.TestRegistry).FullName, typeof(Namespace1.TestRegistry).Name } },
+                { 0, new[] { typeof(Namespace1.TestRegistry).FullName, typeof(Namespace2.TestRegistry).FullName } },
+                { 1, new[] { typeof(Namespace2.TestRegistry).FullName, typeof(Namespace1.TestRegistry).Name } },
+                { 1, new[] { "ServiceRegistryModules.Internal.Tests.*.TestRegistry", typeof(Namespace1.TestRegistry).Name } },
+                { 0, new[] { "ServiceRegistryModules.Internal.Tests.*.TestRegistry", "ServiceRegistryModules.Internal.Tests.*" } },
+                { 0, new[] { "ServiceRegistryModules.Internal.Test*", "ServiceRegistryModules.Internal*Test*" } },
+                { 1, new[] { "*ServiceRegistryModules.Internal.Test*", "ServiceRegistryModules.Internal.Test*" } }
             };
         #endregion
 
