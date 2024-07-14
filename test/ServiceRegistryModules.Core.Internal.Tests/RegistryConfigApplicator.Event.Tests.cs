@@ -78,7 +78,7 @@ namespace ServiceRegistryModules.Internal.Tests {
             var handlerName = $"{typeof(Core.Internal.Tests.Utility).FullName}.{nameof(Core.Internal.Tests.Utility.OnMyPublicEvent)}";
             var configKey = $"{ServiceRegistryModulesDefaults.REGISTRIES_KEY}:{ServiceRegistryModulesDefaults.CONFIGURATION_KEY}";
             var config = new ConfigurationBuilder()
-                .AddInMemoryCollection(new Dictionary<string, string>() {
+                .AddInMemoryCollection(new Dictionary<string, string?>() {
                     { $"{configKey}:{nameof(TestSamples1.TestRegistry2)}:{nameof(TestSamples1.TestRegistry2.MyPublicEvent)}", handlerName }
                 });
 
@@ -117,7 +117,8 @@ namespace ServiceRegistryModules.Internal.Tests {
             using (new AssertionScope()) {
                 ex.Which.Message.Should().Be(formattedErrorMsg);
                 if (scenario.InnerExTypeName is not null) {
-                    ex.Which.InnerException.GetType().FullName.Should().Be(scenario.InnerExTypeName);
+                    ex.Which.InnerException.Should().NotBeNull();
+                    ex.Which.InnerException!.GetType().FullName.Should().Be(scenario.InnerExTypeName);
                 } else {
                     ex.Which.InnerException.Should().BeNull();
                 }

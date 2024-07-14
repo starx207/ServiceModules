@@ -1,6 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+#if !NETSTANDARD2_0
+using System.Diagnostics.CodeAnalysis;
+#endif
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -44,7 +47,7 @@ internal class RegistryConfigApplicator : IRegistryConfigApplicator {
         foreach (var prop in propertiesToSet) {
             var converter = TypeDescriptor.GetConverter(prop.PropertyType);
             try {
-                prop.SetValue(registry, converter.ConvertFrom(config[prop.Name].Value));
+                prop.SetValue(registry, converter.ConvertFrom(config[prop.Name].Value!));
             } catch (Exception ex) {
                 if (!config.TryGetValue(prop.Name, out var value) || !value.SuppressErrors) {
                     throw new RegistryConfigurationException($"Unable to set {prop.Name} value to configured value.", ex);
@@ -66,7 +69,8 @@ internal class RegistryConfigApplicator : IRegistryConfigApplicator {
 
             Assembly assembly;
             try {
-                assembly = string.IsNullOrEmpty(config[evt.Name].HintPath) ? Assembly.Load(new AssemblyName(assmName)) : Assembly.LoadFrom(config[evt.Name].HintPath);
+                var hintPath = config[evt.Name].HintPath;
+                assembly = string.IsNullOrEmpty(hintPath) ? Assembly.Load(new AssemblyName(assmName)) : Assembly.LoadFrom(hintPath);
             } catch (FileNotFoundException ex) {
                 if (!suppressErrs) {
                     throw new RegistryConfigurationException($"'{evt.Name}' event handler could not be loaded from assembly '{assmName}'.", ex);
@@ -96,7 +100,7 @@ internal class RegistryConfigApplicator : IRegistryConfigApplicator {
             var tDelegate = evt.EventHandlerType;
             Delegate @delegate;
             try {
-                @delegate = Delegate.CreateDelegate(tDelegate, methodInfo);
+                @delegate = Delegate.CreateDelegate(tDelegate!, methodInfo);
             } catch (ArgumentException ex) {
                 if (!suppressErrs) {
                     throw new RegistryConfigurationException($"'{typName}.{mthdName}' is not a compatible event handler for '{evt.Name}'.", ex);
@@ -106,11 +110,18 @@ internal class RegistryConfigApplicator : IRegistryConfigApplicator {
             var addHandler = evt.GetAddMethod();
             var addHandlerArgs = new[] { @delegate };
 
-            addHandler.Invoke(registry, addHandlerArgs);
+            addHandler?.Invoke(registry, addHandlerArgs);
         }
     }
 
-    private (string? assemblyName, string? typeName, string? methodName) UnpackStaticMethod(string fullMethodName, bool suppressErrs) {
+    private (string? assemblyName, string? typeName, string? methodName) UnpackStaticMethod(string? fullMethodName, bool suppressErrs) {
+#if NET6_0_OR_GREATER
+        ArgumentNullException.ThrowIfNull(fullMethodName);
+#else
+        if (fullMethodName is null) {
+            throw new ArgumentNullException(nameof(fullMethodName));
+        }
+#endif
         var errMsg = $"Invalid handler name ({fullMethodName}). Please use the fully qualified handler name.";
 
         var lastIndex = fullMethodName.LastIndexOf('.');
@@ -182,11 +193,15 @@ internal class RegistryConfigApplicator : IRegistryConfigApplicator {
         return registryType.GetMembers(bindingFlags).Where(member => config.ContainsKey(member.Name));
     }
 
+#if !NETSTANDARD2_0
+    private bool TryExtractConfigForRegistry(Type registryType, [MaybeNullWhen(false)] out IReadOnlyDictionary<string, RegistryPropertyConfig> config) {
+#else
     private bool TryExtractConfigForRegistry(Type registryType, out IReadOnlyDictionary<string, RegistryPropertyConfig> config) {
+#endif
         config = new Dictionary<string, RegistryPropertyConfig>(StringComparer.OrdinalIgnoreCase);
 
         // Namespace + type-name first
-        if (_registryConfig!.TryGetValue(registryType.FullName, out config)) {
+        if (_registryConfig!.TryGetValue(registryType.FullName!, out config)) {
             return true;
         }
 
@@ -200,7 +215,7 @@ internal class RegistryConfigApplicator : IRegistryConfigApplicator {
         var wildcardMatch = _registryConfig.Where(entry => entry.Key.Contains(wildcard) && entry.Key.Length > 1)
             .OrderByDescending(entry => entry.Key.Replace(wildcard.ToString(), string.Empty).Length) // Get the most specific wildcard match
                 .ThenBy(entry => entry.Key.Count(c => c == wildcard)) // Favor fewer wildcards when the lengths (without wildcards) match
-            .FirstOrDefault(entry => registryType.FullName.MatchWildcard(entry.Key, wildcard, comparison: StringComparison.OrdinalIgnoreCase))
+            .FirstOrDefault(entry => registryType.FullName!.MatchWildcard(entry.Key, wildcard, comparison: StringComparison.OrdinalIgnoreCase))
             .Value;
 
         if (wildcardMatch is not null) {

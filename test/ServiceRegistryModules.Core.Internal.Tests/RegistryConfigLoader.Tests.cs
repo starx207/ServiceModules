@@ -161,7 +161,7 @@ public class RegistryConfigLoader_Should {
         var expectedValue = "some-value-in-another-key";
         var otherKey = "some:other:key";
 
-        var configEntries = new Dictionary<string, string> {
+        var configEntries = new Dictionary<string, string?> {
             { $"{key}:{ServiceRegistryModulesDefaults.CONFIGURATION_KEY}:registry1:prop1:value", otherKey },
             { $"{key}:{ServiceRegistryModulesDefaults.CONFIGURATION_KEY}:registry1:prop1:type", ConfigurationType.Config.ToString().ToLower() },
             { otherKey, expectedValue }
@@ -186,7 +186,7 @@ public class RegistryConfigLoader_Should {
         var key = "my_registry_config";
         var otherKey = "some:missing:key";
 
-        var configEntries = new Dictionary<string, string> {
+        var configEntries = new Dictionary<string, string?> {
             { $"{key}:{ServiceRegistryModulesDefaults.CONFIGURATION_KEY}:registry1:prop1:value", otherKey },
             { $"{key}:{ServiceRegistryModulesDefaults.CONFIGURATION_KEY}:registry1:prop1:type", ConfigurationType.Config.ToString().ToLower() },
             { otherKey.Replace(":missing:", ":not_missing:"), "some-value" }
@@ -209,7 +209,7 @@ public class RegistryConfigLoader_Should {
         var key = "my_registry_config";
         var otherKey = "some:missing:key";
 
-        var configEntries = new Dictionary<string, string> {
+        var configEntries = new Dictionary<string, string?> {
             { $"{key}:{ServiceRegistryModulesDefaults.CONFIGURATION_KEY}:registry1:prop1:value", otherKey },
             { $"{key}:{ServiceRegistryModulesDefaults.CONFIGURATION_KEY}:registry1:prop1:type", ConfigurationType.Config.ToString().ToLower() },
             { $"{key}:{ServiceRegistryModulesDefaults.CONFIGURATION_KEY}:registry1:prop1:suppresserrors", "true" },
@@ -264,7 +264,7 @@ public class RegistryConfigLoader_Should {
         var key = "registry_config";
 
         var options = CreateOptions(builder => builder.AddInMemoryCollection(new[] {
-            KeyValuePair.Create($"{key}:{ServiceRegistryModulesDefaults.CONFIGURATION_KEY}:SomeRegistry", "no-properties")
+            KeyValuePair.Create($"{key}:{ServiceRegistryModulesDefaults.CONFIGURATION_KEY}:SomeRegistry", (string?)"no-properties")
         }), sectionKey: key);
         var service = CreateService();
 

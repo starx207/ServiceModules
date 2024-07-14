@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-#if NETSTANDARD2_1_OR_GREATER
+#if !NETSTANDARD2_0
 using System.Diagnostics.CodeAnalysis;
 #endif
 using System.IO;
@@ -323,7 +323,7 @@ public class ServiceCollectionRegistryConfiguration {
                 var hintPath = addSection.GetSection(nameof(AddRegistryConfig.HintPath)).Value;
 
                 additionalRegistries.Add(new() {
-                    FullName = fullName,
+                    FullName = fullName!,
                     SuppressErrors = suppressErr,
                     HintPath = hintPath
                 });
@@ -342,7 +342,7 @@ public class ServiceCollectionRegistryConfiguration {
                     unresolvedTypes.Add(additionalReg.FullName);
                 }
             } else {
-                resolvedTypes.Add(additionalType);
+                resolvedTypes.Add(additionalType!);
             }
         }
 
@@ -369,20 +369,20 @@ public class ServiceCollectionRegistryConfiguration {
                 continue;
             }
 
-            var matchIdx = Options.RegistryTypes.FindIndex(t => skippedRegistry.Equals(t.FullName, StringComparison.OrdinalIgnoreCase));
+            var matchIdx = Options.RegistryTypes.FindIndex(t => skippedRegistry!.Equals(t.FullName, StringComparison.OrdinalIgnoreCase));
             if (matchIdx >= 0) {
                 Options.RegistryTypes.RemoveAt(matchIdx);
                 continue; // At this point we've already removed types that have an instance, so no need to continue
             }
 
-            matchIdx = Options.Registries.FindIndex(r => skippedRegistry.Equals(r.GetType().FullName, StringComparison.OrdinalIgnoreCase));
+            matchIdx = Options.Registries.FindIndex(r => skippedRegistry!.Equals(r.GetType().FullName, StringComparison.OrdinalIgnoreCase));
             if (matchIdx >= 0) {
                 Options.Registries.RemoveAt(matchIdx);
             }
         }
     }
 
-#if NETSTANDARD2_1_OR_GREATER
+#if !NETSTANDARD2_0
     private bool TryGetType(AddRegistryConfig addConfig, [NotNullWhen(true)] out Type? foundType) {
 #else
     private bool TryGetType(AddRegistryConfig addConfig, out Type? foundType) {
@@ -397,7 +397,7 @@ public class ServiceCollectionRegistryConfiguration {
             return false;
         }
 
-#if NETSTANDARD2_1_OR_GREATER
+#if !NETSTANDARD2_0
         var typeName = fullTypeName[(lastIndex + 1)..];
         var assemblyName = fullTypeName[..lastIndex];
 #else

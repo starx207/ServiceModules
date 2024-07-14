@@ -27,7 +27,7 @@ internal class RegistryConfigLoader : IRegistryConfigLoader {
                     Enum.TryParse<ConfigurationType>(propertySection.GetSection(nameof(RegistryPropertyConfig.Type)).Value, true, out var type);
 
                     if (type == ConfigurationType.Config) {
-                        var newValue = options.Configuration[value];
+                        var newValue = options.Configuration[value!];
                         if (newValue is null) {
                             if (suppressErr) {
                                 continue;

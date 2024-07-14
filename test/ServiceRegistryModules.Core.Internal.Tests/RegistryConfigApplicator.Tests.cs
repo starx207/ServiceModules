@@ -96,9 +96,9 @@ namespace ServiceRegistryModules.Internal.Tests {
         #region Test Inputs
         public static TheoryData<int, string[]> KeyMatchingInputs()
             => new() {
-                { 0, new[] { typeof(Namespace1.TestRegistry).FullName, typeof(Namespace1.TestRegistry).Name } },
-                { 0, new[] { typeof(Namespace1.TestRegistry).FullName, typeof(Namespace2.TestRegistry).FullName } },
-                { 1, new[] { typeof(Namespace2.TestRegistry).FullName, typeof(Namespace1.TestRegistry).Name } },
+                { 0, new[] { typeof(Namespace1.TestRegistry).FullName!, typeof(Namespace1.TestRegistry).Name } },
+                { 0, new[] { typeof(Namespace1.TestRegistry).FullName!, typeof(Namespace2.TestRegistry).FullName! } },
+                { 1, new[] { typeof(Namespace2.TestRegistry).FullName!, typeof(Namespace1.TestRegistry).Name } },
                 { 1, new[] { "ServiceRegistryModules.Internal.Tests.*.TestRegistry", typeof(Namespace1.TestRegistry).Name } },
                 { 0, new[] { "ServiceRegistryModules.Internal.Tests.*.TestRegistry", "ServiceRegistryModules.Internal.Tests.*" } },
                 { 0, new[] { "ServiceRegistryModules.Internal.Test*", "ServiceRegistryModules.Internal*Test*" } },

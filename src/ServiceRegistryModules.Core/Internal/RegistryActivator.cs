@@ -30,7 +30,7 @@ internal class RegistryActivator : IRegistryActivator {
             return true;
         }
 
-        if (!type.IsNested || !type.IsNestedPublic) {
+        if (!type.IsNested || !type.IsNestedPublic || type.DeclaringType is null) {
             return false;
         }
 
@@ -43,8 +43,10 @@ internal class RegistryActivator : IRegistryActivator {
         var paramInstances = new object[ctorParams.Length];
 
         for (var i = 0; i < ctorParams.Length; i++) {
-            paramInstances[i] = options.Providers.FirstOrDefault(provider => provider.GetType() == ctorParams[i].ParameterType)
-                ?? options.Providers.FirstOrDefault(provider => ctorParams[i].ParameterType.IsAssignableFrom(provider.GetType()));
+            var paramType = ctorParams[i].ParameterType;
+            paramInstances[i] = options.Providers.FirstOrDefault(provider => provider.GetType() == paramType)
+                ?? options.Providers.FirstOrDefault(provider => paramType.IsAssignableFrom(provider.GetType()))
+                ?? throw new RegistryActivationException($"Unable to find provider of type {paramType.FullName}");
         }
 
         return (IRegistryModule)ctor.Invoke(paramInstances);
