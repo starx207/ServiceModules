@@ -5,13 +5,13 @@ namespace ServiceRegistryModules.Internal;
 internal static class StringExtensions {
     public static bool MatchWildcard(this string value, string check, char wildcard, StringComparison comparison = StringComparison.Ordinal) {
         var trimmedCheck = check.Trim(wildcard);
-#if NETSTANDARD2_1_OR_GREATER
+#if !NETSTANDARD2_0
         return (check.StartsWith(wildcard), check.EndsWith(wildcard), trimmedCheck.Contains(wildcard)) switch {
 #else
         return (check.StartsWith(wildcard.ToString()), check.EndsWith(wildcard.ToString()), trimmedCheck.Contains(wildcard)) switch {
 #endif
             (var wildcardStart, var wildcardEnd, true) => MatchInnerWildcard(value, trimmedCheck.Split(wildcard), !wildcardStart, !wildcardEnd, comparison),
-#if NETSTANDARD2_1_OR_GREATER
+#if !NETSTANDARD2_0
             (true, true, _) => value.Contains(trimmedCheck, comparison),
 #else
             (true, true, _) => value.IndexOf(trimmedCheck, comparison) >= 0,

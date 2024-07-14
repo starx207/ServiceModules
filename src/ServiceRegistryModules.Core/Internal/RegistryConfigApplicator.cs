@@ -36,7 +36,7 @@ internal class RegistryConfigApplicator : IRegistryConfigApplicator {
         GuardUndefinedMembers(registryType, allMemberInfo, config);
 
         ApplyPropertyConfigurations(registry, registryType, config, allMemberInfo);
-        ApplyEventConfigurations(registry, registryType, config, allMemberInfo);
+        ApplyEventConfigurations(registry, config, allMemberInfo);
     }
 
     private void ApplyPropertyConfigurations(IRegistryModule registry, Type registryType, IReadOnlyDictionary<string, RegistryPropertyConfig> allConfig, IEnumerable<MemberInfo> allMemberInfo) {
@@ -56,7 +56,7 @@ internal class RegistryConfigApplicator : IRegistryConfigApplicator {
         }
     }
 
-    private void ApplyEventConfigurations(IRegistryModule registry, Type registryType, IReadOnlyDictionary<string, RegistryPropertyConfig> allConfig, IEnumerable<MemberInfo> allMemberInfo) {
+    private static void ApplyEventConfigurations(IRegistryModule registry, IReadOnlyDictionary<string, RegistryPropertyConfig> allConfig, IEnumerable<MemberInfo> allMemberInfo) {
         var eventsToSet = allMemberInfo.Where(m => m.MemberType == MemberTypes.Event).Cast<EventInfo>();
         var config = FilterConfigType(allConfig, ConfigurationType.Event, eventsToSet.Select(e => e.Name));
 
@@ -114,7 +114,7 @@ internal class RegistryConfigApplicator : IRegistryConfigApplicator {
         }
     }
 
-    private (string? assemblyName, string? typeName, string? methodName) UnpackStaticMethod(string? fullMethodName, bool suppressErrs) {
+    private static (string? assemblyName, string? typeName, string? methodName) UnpackStaticMethod(string? fullMethodName, bool suppressErrs) {
 #if NET6_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(fullMethodName);
 #else
@@ -128,6 +128,7 @@ internal class RegistryConfigApplicator : IRegistryConfigApplicator {
         if (lastIndex < 0) {
             return suppressErrs ? default : throw new RegistryConfigurationException(errMsg);
         }
+#if NETSTANDARD2_0
         var methodName = fullMethodName.Substring(lastIndex + 1);
         fullMethodName = fullMethodName.Substring(0, lastIndex);
 
@@ -138,11 +139,22 @@ internal class RegistryConfigApplicator : IRegistryConfigApplicator {
         var typeName = fullMethodName.Substring(lastIndex + 1);
 
         var assemblyName = fullMethodName.Substring(0, lastIndex);
+#else
+        var methodName = fullMethodName[(lastIndex + 1)..];
+        fullMethodName = fullMethodName[..lastIndex];
 
+        lastIndex = fullMethodName.LastIndexOf('.');
+        if (lastIndex < 0) {
+            return suppressErrs ? default : throw new RegistryConfigurationException(errMsg);
+        }
+        var typeName = fullMethodName[(lastIndex + 1)..];
+
+        var assemblyName = fullMethodName[..lastIndex];
+#endif
         return (assemblyName, typeName, methodName);
     }
 
-    private IReadOnlyDictionary<string, RegistryPropertyConfig> FilterConfigType(IReadOnlyDictionary<string, RegistryPropertyConfig> allConfig, ConfigurationType type, IEnumerable<string> memberKeys)
+    private static Dictionary<string, RegistryPropertyConfig> FilterConfigType(IReadOnlyDictionary<string, RegistryPropertyConfig> allConfig, ConfigurationType type, IEnumerable<string> memberKeys)
         => allConfig.Where(cfg => (type | ConfigurationType.Auto).HasFlag(cfg.Value.Type) && memberKeys.Contains(cfg.Key))
         .ToDictionary(cfg => cfg.Key, cfg => cfg.Value);
 
@@ -161,7 +173,7 @@ internal class RegistryConfigApplicator : IRegistryConfigApplicator {
         }
     }
 
-    private IEnumerable<PropertyInfo> FilterUnsettablePropertiesOrThrow(Type registryType, IEnumerable<PropertyInfo> propertiesToSet, IReadOnlyDictionary<string, RegistryPropertyConfig> config) {
+    private PropertyInfo[] FilterUnsettablePropertiesOrThrow(Type registryType, IEnumerable<PropertyInfo> propertiesToSet, IReadOnlyDictionary<string, RegistryPropertyConfig> config) {
         var ignoreProps = config.Where(cfg => cfg.Value.SuppressErrors).Select(cfg => cfg.Key).ToArray();
         var settableProps = propertiesToSet.Where(HasValidSetter).ToArray();
 

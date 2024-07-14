@@ -194,7 +194,7 @@ public class WebApplicationBuilderExtensions_Should {
     #endregion
 
     #region Test Helpers
-    private WebApplicationBuilder CreateBuilder(Dependencies? deps = null) {
+    private static WebApplicationBuilder CreateBuilder(Dependencies? deps = null) {
         var builder = WebApplication.CreateBuilder();
         InternalServiceProvider.RegistryRunnerTestOverride = deps?.Runner.Object;
         return builder;

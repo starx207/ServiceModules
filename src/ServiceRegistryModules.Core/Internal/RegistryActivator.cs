@@ -38,7 +38,7 @@ internal class RegistryActivator : IRegistryActivator {
         return IsTypePublic(type.DeclaringType);
     }
 
-    private IRegistryModule CreateRegistryInstance(ConstructorInfo ctor, RegistryOptions options) {
+    private static IRegistryModule CreateRegistryInstance(ConstructorInfo ctor, RegistryOptions options) {
         var ctorParams = ctor.GetParameters();
         var paramInstances = new object[ctorParams.Length];
 
@@ -52,7 +52,7 @@ internal class RegistryActivator : IRegistryActivator {
         return (IRegistryModule)ctor.Invoke(paramInstances);
     }
 
-    private ConstructorInfo? FindConstructorWithArgsThatSatisfy(Type registryType, IEnumerable<Type> availableArgs) {
+    private static ConstructorInfo? FindConstructorWithArgsThatSatisfy(Type registryType, IEnumerable<Type> availableArgs) {
         var availableCount = availableArgs.Count();
 
         return registryType.GetConstructors(BindingFlags.Public | BindingFlags.Instance)

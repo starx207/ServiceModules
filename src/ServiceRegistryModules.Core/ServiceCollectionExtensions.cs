@@ -23,7 +23,7 @@ public static class ServiceCollectionExtensions {
     /// <exception cref="RegistryConfigurationException">When there is a problem with the registry configuration</exception>
     public static IServiceCollection ApplyRegistries(this IServiceCollection services, params Assembly[] assemblies)
         => services.ApplyRegistries(config => {
-            if (assemblies.Any()) {
+            if (assemblies.Length > 0) {
                 config.FromAssemblies(assemblies);
             }
         }, Assembly.GetCallingAssembly());
@@ -59,7 +59,7 @@ public static class ServiceCollectionExtensions {
     /// <exception cref="RegistryConfigurationException">When there is a problem with the registry configuration</exception>
     public static IServiceCollection ApplyRegistries(this IServiceCollection services, HostBuilderContext context, params Assembly[] assemblies)
         => services.ApplyRegistries(config => {
-            if (assemblies.Any()) {
+            if (assemblies.Length > 0) {
                 config.FromAssemblies(assemblies);
             }
             config.UsingConfiguration(context.Configuration);
