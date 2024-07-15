@@ -4,7 +4,7 @@
     <TargetFrameworks>netstandard2.0;netstandard2.1</TargetFrameworks>
 
     <PackageId>ServiceRegistryModules.Abstractions</PackageId>
-    <PackageVersion>1.1.1</PackageVersion>
+    <PackageVersion>1.2.0</PackageVersion>
     <Authors>Andrew Starr</Authors>
     <Description>
       Core abstractions used in ServiceRegistryModules
