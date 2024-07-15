@@ -195,13 +195,17 @@ public class WebApplicationBuilderExtensions_Should {
 
     #region Test Helpers
     private static WebApplicationBuilder CreateBuilder(Dependencies? deps = null) {
+#if NET8_0_OR_GREATER
+        var builder = WebApplication.CreateEmptyBuilder(new());
+#else
         var builder = WebApplication.CreateBuilder();
+#endif
         InternalServiceProvider.RegistryRunnerTestOverride = deps?.Runner.Object;
         return builder;
     }
 
     private static RegistryOptions CreateOptions() => new();
-    #endregion
+#endregion
 
     #region Test Classes
     private class TestRegistry1 : AbstractRegistryModule {
