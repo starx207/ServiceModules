@@ -113,8 +113,9 @@ public class RegistryRunner_Should {
         MemberData(nameof(EnvironmentMatchInput), "production"),
         MemberData(nameof(EnvironmentMatchInput), null),
         MemberData(nameof(EnvironmentMatchInput), "staging")]
-    public void NotApplyConfigurations_OrConfigureServices_ForRegistriesThatDoNotMatchTheCurrentEnvironment(Mock<IRegistryModule>[] registries, string? environment, int[] expectedIndicies) {
+    public void NotApplyConfigurations_OrConfigureServices_ForRegistriesThatDoNotMatchTheCurrentEnvironment(string[][] registryEnvironments, string? environment, int[] expectedIndicies) {
         // Arrange
+        var registries = registryEnvironments.Select(env => CreateMockRegistry(env)).ToArray();
         var hostEnv = environment == null ? null : new TestEnvironment(environment);
         var options = CreateOptions(environment: hostEnv);
         var mock = new Dependencies();
@@ -152,32 +153,32 @@ public class RegistryRunner_Should {
     #endregion
 
     #region Test Inputs
-    private static IEnumerable<object[]> EnvironmentMatchInput(string? actualEnvironment) {
-        var registries = new[] {
-            CreateMockRegistry("Development"),
-            CreateMockRegistry("production"),
-            CreateMockRegistry("development", "Production"),
-            CreateMockRegistry()
+    public static TheoryData<string[][], string, int[]> EnvironmentMatchInput(string? actualEnvironment) {
+        var registryEnvironments = new string[][] {
+            new[] { "Development" },
+            new[] { "production" },
+            new[] { "development", "Production" },
+            Array.Empty<string>()
         };
         var expectedRegistryIndicies = new List<int>();
 
-        for (var i = 0; i < registries.Length; i++) {
+        for (var i = 0; i < registryEnvironments.Length; i++) {
             if (actualEnvironment is null) {
                 expectedRegistryIndicies.Add(i);
                 continue;
             }
-            if (registries[i].Object.TargetEnvironments.Contains(actualEnvironment, StringComparer.OrdinalIgnoreCase)) {
+            if (registryEnvironments[i].Contains(actualEnvironment, StringComparer.OrdinalIgnoreCase)) {
                 expectedRegistryIndicies.Add(i);
                 continue;
             }
-            if (registries[i].Object.TargetEnvironments.Count == 0) {
+            if (registryEnvironments[i].Length == 0) {
                 expectedRegistryIndicies.Add(i);
             }
         }
 
-        return new object[][] {
-            new object[] {
-                registries,
+        return new() {
+            { 
+                registryEnvironments,
                 actualEnvironment!,
                 expectedRegistryIndicies.ToArray()
             }

@@ -30,7 +30,7 @@ internal class RegistryActivator : IRegistryActivator {
             return true;
         }
 
-        if (!type.IsNested || !type.IsNestedPublic) {
+        if (!type.IsNested || !type.IsNestedPublic || type.DeclaringType is null) {
             return false;
         }
 
@@ -38,19 +38,21 @@ internal class RegistryActivator : IRegistryActivator {
         return IsTypePublic(type.DeclaringType);
     }
 
-    private IRegistryModule CreateRegistryInstance(ConstructorInfo ctor, RegistryOptions options) {
+    private static IRegistryModule CreateRegistryInstance(ConstructorInfo ctor, RegistryOptions options) {
         var ctorParams = ctor.GetParameters();
         var paramInstances = new object[ctorParams.Length];
 
         for (var i = 0; i < ctorParams.Length; i++) {
-            paramInstances[i] = options.Providers.FirstOrDefault(provider => provider.GetType() == ctorParams[i].ParameterType)
-                ?? options.Providers.FirstOrDefault(provider => ctorParams[i].ParameterType.IsAssignableFrom(provider.GetType()));
+            var paramType = ctorParams[i].ParameterType;
+            paramInstances[i] = options.Providers.FirstOrDefault(provider => provider.GetType() == paramType)
+                ?? options.Providers.FirstOrDefault(provider => paramType.IsAssignableFrom(provider.GetType()))
+                ?? throw new RegistryActivationException($"Unable to find provider of type {paramType.FullName}");
         }
 
         return (IRegistryModule)ctor.Invoke(paramInstances);
     }
 
-    private ConstructorInfo? FindConstructorWithArgsThatSatisfy(Type registryType, IEnumerable<Type> availableArgs) {
+    private static ConstructorInfo? FindConstructorWithArgsThatSatisfy(Type registryType, IEnumerable<Type> availableArgs) {
         var availableCount = availableArgs.Count();
 
         return registryType.GetConstructors(BindingFlags.Public | BindingFlags.Instance)

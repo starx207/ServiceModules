@@ -6,9 +6,9 @@ using FluentAssertions;
 using FluentAssertions.Execution;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Win32;
 using ServiceRegistryModules.Exceptions;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace ServiceRegistryModules.Internal.Tests {
     public partial class RegistryConfigApplicator_Should {
@@ -78,7 +78,7 @@ namespace ServiceRegistryModules.Internal.Tests {
             var handlerName = $"{typeof(Core.Internal.Tests.Utility).FullName}.{nameof(Core.Internal.Tests.Utility.OnMyPublicEvent)}";
             var configKey = $"{ServiceRegistryModulesDefaults.REGISTRIES_KEY}:{ServiceRegistryModulesDefaults.CONFIGURATION_KEY}";
             var config = new ConfigurationBuilder()
-                .AddInMemoryCollection(new Dictionary<string, string>() {
+                .AddInMemoryCollection(new Dictionary<string, string?>() {
                     { $"{configKey}:{nameof(TestSamples1.TestRegistry2)}:{nameof(TestSamples1.TestRegistry2.MyPublicEvent)}", handlerName }
                 });
 
@@ -116,8 +116,9 @@ namespace ServiceRegistryModules.Internal.Tests {
             var ex = action.Should().Throw<RegistryConfigurationException>();
             using (new AssertionScope()) {
                 ex.Which.Message.Should().Be(formattedErrorMsg);
-                if (scenario.InnerExType is not null) {
-                    ex.Which.InnerException.Should().BeOfType(scenario.InnerExType);
+                if (scenario.InnerExTypeName is not null) {
+                    ex.Which.InnerException.Should().NotBeNull();
+                    ex.Which.InnerException!.GetType().FullName.Should().Be(scenario.InnerExTypeName);
                 } else {
                     ex.Which.InnerException.Should().BeNull();
                 }
@@ -149,60 +150,84 @@ namespace ServiceRegistryModules.Internal.Tests {
         #endregion
 
         #region Test Data
-        private static IEnumerable<object[]> ExceptionData(string displayFormat) => new[] {
-            new object[] { new EventExceptionTestCase(displayFormat,
+        public static TheoryData<EventExceptionTestCase> ExceptionData(string displayFormat) => new() {
+            new EventExceptionTestCase(displayFormat,
                 condition: "event handler assembly cannot be found",
                 handlerName: "Some.Bogus.Assembly.TestEventHandler",
                 expectedErrMsg: "'{0}' event handler could not be loaded from assembly 'Some.Bogus'.",
-                innerExType: typeof(FileNotFoundException)) },
+                innerExType: typeof(FileNotFoundException)),
 
-            new object[] { new EventExceptionTestCase(displayFormat,
+            new EventExceptionTestCase(displayFormat,
                 condition: "event handler declaring type cannot be found",
                 handlerName: $"{typeof(TestSamples2.TestRegistry1).FullName}_Oops.TestEventHandler",
                 expectedErrMsg: $"'{{0}}' event handler could not be found in type '{nameof(TestSamples2.TestRegistry1)}_Oops'.",
-                innerExType: typeof(TypeLoadException)) },
+                innerExType: typeof(TypeLoadException)),
 
-            new object[] { new EventExceptionTestCase(displayFormat,
+            new EventExceptionTestCase(displayFormat,
                 condition: "event handler method cannot be found",
                 handlerName: $"{typeof(TestSamples2.TestRegistry1).FullName}.TestEventHandler_Oops",
-                expectedErrMsg: $"'{{0}}' event handler could not be set from method 'TestEventHandler_Oops'. No such static method found.") },
+                expectedErrMsg: $"'{{0}}' event handler could not be set from method 'TestEventHandler_Oops'. No such static method found."),
 
-            new object[] { new EventExceptionTestCase(displayFormat,
+            new EventExceptionTestCase(displayFormat,
                 condition: "event handler method incompatible with delegate",
                 handlerName: $"{typeof(TestSamples2.TestRegistry1).FullName}.TestInvalidHandler",
                 expectedErrMsg: $"'{nameof(TestSamples2.TestRegistry1)}.TestInvalidHandler' is not a compatible event handler for '{{0}}'.",
-                innerExType: typeof(ArgumentException)) },
+                innerExType: typeof(ArgumentException)),
 
-            new object[] { new EventExceptionTestCase(displayFormat,
+            new EventExceptionTestCase(displayFormat,
                 condition: "configured handler does not include the assembly name",
                 handlerName: $"{nameof(TestSamples2.TestRegistry1)}.TestEventHandler",
-                expectedErrMsg: $"Invalid handler name ({nameof(TestSamples2.TestRegistry1)}.TestEventHandler). Please use the fully qualified handler name.") },
+                expectedErrMsg: $"Invalid handler name ({nameof(TestSamples2.TestRegistry1)}.TestEventHandler). Please use the fully qualified handler name."),
 
-            new object[] { new EventExceptionTestCase(displayFormat,
+            new EventExceptionTestCase(displayFormat,
                 condition: "configured handler does not include the type name",
                 handlerName: "TestEventHandler",
-                expectedErrMsg: "Invalid handler name (TestEventHandler). Please use the fully qualified handler name.") }
+                expectedErrMsg: "Invalid handler name (TestEventHandler). Please use the fully qualified handler name.")
         };
         #endregion
 
         #region Test Classes
-        public class EventExceptionTestCase {
-            private readonly string _displayFormat;
-            private readonly string _condition;
+        public class EventExceptionTestCase : IXunitSerializable {
+            public string DisplayFormat { get; private set; }
+            public string Condition { get; private set; }
+            public string HandlerName { get; private set; }
+            public string ExpectedErrMsg { get; private set; }
+            public string? InnerExTypeName { get; private set; }
+            public string? InnerExTypeShortName { get; private set; }
 
-            public string HandlerName { get; }
-            public string ExpectedErrMsg { get; }
-            public Type? InnerExType { get; }
-
-            public EventExceptionTestCase(string displayFormat, string condition, string handlerName, string expectedErrMsg, Type? innerExType = null) {
-                _displayFormat = displayFormat;
-                _condition = condition;
-                HandlerName = handlerName;
-                ExpectedErrMsg = expectedErrMsg;
-                InnerExType = innerExType;
+            public EventExceptionTestCase() {
+                DisplayFormat = string.Empty;
+                Condition = string.Empty;
+                HandlerName = string.Empty;
+                ExpectedErrMsg = string.Empty;
             }
 
-            public override string ToString() => string.Format(_displayFormat, _condition, InnerExType?.Name ?? nameof(RegistryConfigurationException)).Trim();
+            public EventExceptionTestCase(string displayFormat, string condition, string handlerName, string expectedErrMsg, Type? innerExType = null) {
+                DisplayFormat = displayFormat;
+                Condition = condition;
+                HandlerName = handlerName;
+                ExpectedErrMsg = expectedErrMsg;
+                InnerExTypeName = innerExType?.FullName;
+                InnerExTypeShortName = innerExType?.Name;
+            }
+
+            public override string ToString() => string.Format(DisplayFormat, Condition, InnerExTypeShortName ?? nameof(RegistryConfigurationException)).Trim();
+            public void Deserialize(IXunitSerializationInfo info) {
+                DisplayFormat = info.GetValue<string>(nameof(DisplayFormat));
+                Condition = info.GetValue<string>(nameof(Condition));
+                HandlerName = info.GetValue<string>(nameof(HandlerName));
+                ExpectedErrMsg = info.GetValue<string>(nameof(ExpectedErrMsg));
+                InnerExTypeName = info.GetValue<string?>(nameof(InnerExTypeName));
+                InnerExTypeShortName = info.GetValue<string?>(nameof(InnerExTypeShortName));
+            }
+            public void Serialize(IXunitSerializationInfo info) {
+                info.AddValue(nameof(DisplayFormat), DisplayFormat);
+                info.AddValue(nameof(Condition), Condition);
+                info.AddValue(nameof(HandlerName), HandlerName);
+                info.AddValue(nameof(ExpectedErrMsg), ExpectedErrMsg);
+                info.AddValue(nameof(InnerExTypeName), InnerExTypeName);
+                info.AddValue(nameof(InnerExTypeShortName), InnerExTypeShortName);
+            }
         }
         #endregion
     }

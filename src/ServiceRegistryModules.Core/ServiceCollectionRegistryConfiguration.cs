@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-#if NETSTANDARD2_1_OR_GREATER
+#if !NETSTANDARD2_0
 using System.Diagnostics.CodeAnalysis;
 #endif
 using System.IO;
@@ -20,9 +20,13 @@ public class FullServiceCollectionRegistryConfiguration : ServiceCollectionRegis
 
     /// <inheritdoc cref="ServiceCollectionRegistryConfiguration.UsingProviders(object[])"/>
     public new FullServiceCollectionRegistryConfiguration UsingProviders(params object[] providers) {
+#if NET6_0_OR_GREATER
+        ArgumentNullException.ThrowIfNull(providers);
+#else
         if (providers is null) {
             throw new ArgumentNullException(nameof(providers));
         }
+#endif
 
         foreach (var provider in providers) {
             if (HostEnvironmentType.IsAssignableFrom(provider.GetType())) {
@@ -46,9 +50,13 @@ public class FullServiceCollectionRegistryConfiguration : ServiceCollectionRegis
     /// <exception cref="ArgumentNullException"></exception>
     /// <exception cref="InvalidOperationException">When the <paramref name="environment"/> does not implement <see cref="IHostEnvironment"/></exception>
     public FullServiceCollectionRegistryConfiguration UsingEnvironment(object environment) {
+#if NET6_0_OR_GREATER
+        ArgumentNullException.ThrowIfNull(environment);
+#else
         if (environment is null) {
             throw new ArgumentNullException(nameof(environment));
         }
+#endif
 
         if (!HostEnvironmentType.IsAssignableFrom(environment.GetType())) {
             throw new RegistryConfigurationException($"Environment object must implement {nameof(IHostEnvironment)}");
@@ -71,9 +79,13 @@ public class FullServiceCollectionRegistryConfiguration : ServiceCollectionRegis
     /// <returns></returns>
     /// <exception cref="ArgumentNullException"></exception>
     public FullServiceCollectionRegistryConfiguration UsingConfiguration(IConfiguration configuration) {
+#if NET6_0_OR_GREATER
+        ArgumentNullException.ThrowIfNull(configuration);
+#else
         if (configuration is null) {
             throw new ArgumentNullException(nameof(configuration));
         }
+#endif
 
         AddProvider(configuration, true, ConfigurationType);
         Options.Configuration = configuration;
@@ -210,9 +222,13 @@ public class ServiceCollectionRegistryConfiguration {
     /// <returns></returns>
     /// <exception cref="ArgumentNullException"></exception>
     public ServiceCollectionRegistryConfiguration UsingProviders(params object[] providers) {
+#if NET6_0_OR_GREATER
+        ArgumentNullException.ThrowIfNull(providers);
+#else
         if (providers is null) {
             throw new ArgumentNullException(nameof(providers));
         }
+#endif
 
         foreach (var provider in providers) {
             AddProvider(provider, false);
@@ -229,9 +245,13 @@ public class ServiceCollectionRegistryConfiguration {
     /// <exception cref="ArgumentNullException"></exception>
     /// <exception cref="InvalidOperationException">When any of the provided <paramref name="registryTypes"/> do not implement <see cref="IRegistryModule"/></exception>
     public ServiceCollectionRegistryConfiguration OfTypes(params Type[] registryTypes) {
+#if NET6_0_OR_GREATER
+        ArgumentNullException.ThrowIfNull(registryTypes);
+#else
         if (registryTypes is null) {
             throw new ArgumentNullException(nameof(registryTypes));
         }
+#endif
         var invalidRegistryTypes = registryTypes.Where(t => !typeof(IRegistryModule).IsAssignableFrom(t)).Select(t => t.Name);
         if (invalidRegistryTypes.Any()) {
             throw new RegistryConfigurationException($"The following registry types do not implement {nameof(IRegistryModule)}: {string.Join(", ", invalidRegistryTypes)}");
@@ -253,9 +273,13 @@ public class ServiceCollectionRegistryConfiguration {
     /// <returns></returns>
     /// <exception cref="ArgumentNullException"></exception>
     public ServiceCollectionRegistryConfiguration From(params IRegistryModule[] registries) {
+#if NET6_0_OR_GREATER
+        ArgumentNullException.ThrowIfNull(registries);
+#else
         if (registries is null) {
             throw new ArgumentNullException(nameof(registries));
         }
+#endif
 
         foreach (var registry in registries) {
             if (!Options.Registries.Contains(registry)) {
@@ -274,7 +298,7 @@ public class ServiceCollectionRegistryConfiguration {
     internal RegistryOptions GetOptions() {
         LoadAdditionalRegistriesFromConfig();
 
-        if (!Options.Registries.Any() && !Options.RegistryTypes.Any()) {
+        if (Options.Registries.Count == 0 && Options.RegistryTypes.Count == 0) {
             AttemptToLoadFromDefaultAssembly();
         }
         RemoveRegistryTypesWithConcreteImplementations();
@@ -283,7 +307,7 @@ public class ServiceCollectionRegistryConfiguration {
     }
 
     private void RemoveRegistryTypesWithConcreteImplementations() {
-        if (Options.Registries.Any() && Options.RegistryTypes.Any()) {
+        if (Options.Registries.Count > 0 && Options.RegistryTypes.Count > 0) {
             var concreteTypes = Options.Registries.Select(m => m.GetType());
             Options.RegistryTypes.RemoveAll(mt => concreteTypes.Contains(mt));
         }
@@ -323,33 +347,33 @@ public class ServiceCollectionRegistryConfiguration {
                 var hintPath = addSection.GetSection(nameof(AddRegistryConfig.HintPath)).Value;
 
                 additionalRegistries.Add(new() {
-                    FullName = fullName,
+                    FullName = fullName!,
                     SuppressErrors = suppressErr,
                     HintPath = hintPath
                 });
             }
         }
 
-        if (!additionalRegistries.Any()) {
+        if (additionalRegistries.Count == 0) {
             return;
         }
 
         var unresolvedTypes = new List<string>();
         var resolvedTypes = new List<Type>();
         foreach (var additionalReg in additionalRegistries) {
-            if (!TryGetType(additionalReg, out var additionalType)) {
+            if (!ServiceCollectionRegistryConfiguration.TryGetType(additionalReg, out var additionalType)) {
                 if (!additionalReg.SuppressErrors) {
                     unresolvedTypes.Add(additionalReg.FullName);
                 }
             } else {
-                resolvedTypes.Add(additionalType);
+                resolvedTypes.Add(additionalType!);
             }
         }
 
-        if (unresolvedTypes.Any()) {
+        if (unresolvedTypes.Count > 0) {
             throw new RegistryConfigurationException($"Unable to find additional configured registries: {string.Join(", ", unresolvedTypes)}");
         }
-        if (!resolvedTypes.Any()) {
+        if (resolvedTypes.Count == 0) {
             return;
         }
         OfTypes(resolvedTypes.ToArray());
@@ -369,23 +393,23 @@ public class ServiceCollectionRegistryConfiguration {
                 continue;
             }
 
-            var matchIdx = Options.RegistryTypes.FindIndex(t => skippedRegistry.Equals(t.FullName, StringComparison.OrdinalIgnoreCase));
+            var matchIdx = Options.RegistryTypes.FindIndex(t => skippedRegistry!.Equals(t.FullName, StringComparison.OrdinalIgnoreCase));
             if (matchIdx >= 0) {
                 Options.RegistryTypes.RemoveAt(matchIdx);
                 continue; // At this point we've already removed types that have an instance, so no need to continue
             }
 
-            matchIdx = Options.Registries.FindIndex(r => skippedRegistry.Equals(r.GetType().FullName, StringComparison.OrdinalIgnoreCase));
+            matchIdx = Options.Registries.FindIndex(r => skippedRegistry!.Equals(r.GetType().FullName, StringComparison.OrdinalIgnoreCase));
             if (matchIdx >= 0) {
                 Options.Registries.RemoveAt(matchIdx);
             }
         }
     }
 
-#if NETSTANDARD2_1_OR_GREATER
-    private bool TryGetType(AddRegistryConfig addConfig, [NotNullWhen(true)] out Type? foundType) {
+#if !NETSTANDARD2_0
+    private static bool TryGetType(AddRegistryConfig addConfig, [NotNullWhen(true)] out Type? foundType) {
 #else
-    private bool TryGetType(AddRegistryConfig addConfig, out Type? foundType) {
+    private static bool TryGetType(AddRegistryConfig addConfig, out Type? foundType) {
 #endif
         foundType = null;
 
@@ -397,7 +421,7 @@ public class ServiceCollectionRegistryConfiguration {
             return false;
         }
 
-#if NETSTANDARD2_1_OR_GREATER
+#if !NETSTANDARD2_0
         var typeName = fullTypeName[(lastIndex + 1)..];
         var assemblyName = fullTypeName[..lastIndex];
 #else

@@ -322,7 +322,7 @@ public class ServiceCollectionExtensions_Should {
         var key = "my_configured_key";
         var configKey = $"{key}:{ServiceRegistryModulesDefaults.ADD_MODULES_KEY}";
         var configBuilder = new ConfigurationBuilder();
-        configBuilder.AddInMemoryCollection(new Dictionary<string, string> {
+        configBuilder.AddInMemoryCollection(new Dictionary<string, string?> {
             { $"{configKey}:0:fullname", "UnreferencedTestSamples.TestRegistry1" },
             { $"{configKey}:0:hintpath", "../../../../SampleProjects/UnreferencedTestSamples/bin/Debug/netstandard2.1/UnreferencedTestSamples.dll" },
             { $"{configKey}:1", regType.FullName! }
@@ -353,7 +353,7 @@ public class ServiceCollectionExtensions_Should {
 
         var configKey = $"{ServiceRegistryModulesDefaults.REGISTRIES_KEY}:{ServiceRegistryModulesDefaults.ADD_MODULES_KEY}";
         var configBuilder = new ConfigurationBuilder();
-        configBuilder.AddInMemoryCollection(configuredAdditions.SelectMany((name, i) => new[] { KeyValuePair.Create($"{configKey}:{i}", name) }));
+        configBuilder.AddInMemoryCollection(configuredAdditions.SelectMany((name, i) => new[] { KeyValuePair.Create($"{configKey}:{i}", (string?)name) }));
 
         // Act
         var action = () => services.ApplyRegistries(config => config.UsingConfiguration(configBuilder.Build()));
@@ -380,10 +380,10 @@ public class ServiceCollectionExtensions_Should {
         var configKey = $"{ServiceRegistryModulesDefaults.REGISTRIES_KEY}:{ServiceRegistryModulesDefaults.ADD_MODULES_KEY}";
         var configBuilder = new ConfigurationBuilder();
         configBuilder.AddInMemoryCollection(configuredAdditions.SelectMany((name, i) => name == validRegistryName
-                ? (new[] { KeyValuePair.Create($"{configKey}:{i}", name) })
-                : (IEnumerable<KeyValuePair<string, string>>)(new[] {
-                    KeyValuePair.Create($"{configKey}:{i}:FullName", name),
-                    KeyValuePair.Create($"{configKey}:{i}:SuppressErrors", "true")
+                ? (new[] { KeyValuePair.Create($"{configKey}:{i}", (string?)name) })
+                : (IEnumerable<KeyValuePair<string, string?>>)(new[] {
+                    KeyValuePair.Create($"{configKey}:{i}:FullName", (string?)name),
+                    KeyValuePair.Create($"{configKey}:{i}:SuppressErrors", (string?)"true")
                 })));
 
         // Act

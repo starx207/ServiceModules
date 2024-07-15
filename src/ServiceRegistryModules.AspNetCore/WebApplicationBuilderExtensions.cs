@@ -18,7 +18,7 @@ public static class WebApplicationBuilderExtensions {
     /// <exception cref="RegistryConfigurationException">When there is a problem with the registry configuration</exception>
     public static void ApplyRegistries(this WebApplicationBuilder builder, params Assembly[] assemblies)
         => builder.ApplyRegistries(config => {
-            if (assemblies.Any()) {
+            if (assemblies.Length > 0) {
                 config.FromAssemblies(assemblies);
             }
         }, Assembly.GetCallingAssembly());
